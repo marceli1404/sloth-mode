@@ -179,25 +179,18 @@ func download(ctx context.Context, url, path string, max int64, expectedHash str
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	tmp := path + ".partial"
+	// Avoid following a predictable .partial symlink planted before a download.
+	out, err := os.CreateTemp(filepath.Dir(path), ".sloth-download-*")
+	if err != nil { return err }
+	tmp := out.Name()
 	defer os.Remove(tmp)
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	req.Header.Set("User-Agent", "SlothModeNative/0.1")
 	resp, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
+	if err != nil { out.Close(); return err }
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("download returned %s", resp.Status)
-	}
-	if resp.ContentLength > max {
-		return errors.New("download larger than expected")
-	}
-	out, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
+	if resp.StatusCode != 200 { out.Close(); return fmt.Errorf("download returned %s", resp.Status) }
+	if resp.ContentLength > max { out.Close(); return errors.New("download larger than expected") }
 	hasher := sha256.New()
 	var n int64
 	last := time.Now().Add(-time.Second)
@@ -244,6 +237,11 @@ func download(ctx context.Context, url, path string, max int64, expectedHash str
 	}
 	return os.Rename(tmp, path)
 }
+// runtimeExpansionWithinBudget avoids overflows from untrusted archive sizes.
+func runtimeExpansionWithinBudget(total int64, advertised uint64, limit int64) bool {
+	return total >= 0 && total <= limit && advertised <= uint64(limit-total)
+}
+
 func extractRuntime(zipFile, dest string) error {
 	zr, err := zip.OpenReader(zipFile)
 	if err != nil {
@@ -262,6 +260,8 @@ func extractRuntime(zipFile, dest string) error {
 	defer os.RemoveAll(tmp)
 	found := false
 	count := 0
+	var extractedTotal int64
+	const maxExpandedRuntimeBytes int64 = 750 << 20
 	names := make(map[string]bool)
 	for _, f := range zr.File {
 		if f.FileInfo().IsDir() {
@@ -288,6 +288,9 @@ func extractRuntime(zipFile, dest string) error {
 		if f.UncompressedSize64 > 150<<20 {
 			return errors.New("oversized runtime file")
 		}
+		if !runtimeExpansionWithinBudget(extractedTotal, f.UncompressedSize64, maxExpandedRuntimeBytes) {
+			return errors.New("runtime archive exceeds total expanded-size budget")
+		}
 		src, err := f.Open()
 		if err != nil {
 			return err
@@ -310,6 +313,10 @@ func extractRuntime(zipFile, dest string) error {
 		}
 		if n > 150<<20 || uint64(n) != f.UncompressedSize64 {
 			return errors.New("unexpected runtime entry size")
+		}
+		extractedTotal += n
+		if extractedTotal > maxExpandedRuntimeBytes {
+			return errors.New("runtime archive exceeds total expanded-size budget")
 		}
 		if strings.EqualFold(name, "llama-server.exe") {
 			found = true

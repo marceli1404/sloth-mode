@@ -86,3 +86,20 @@ func TestRuntimeZipNeverOverwritesExistingDestination(t *testing.T) {
 		t.Fatalf("old data lost: %v", err)
 	}
 }
+
+func TestRuntimeArchiveExpandedSizeBudget(t *testing.T) {
+	const budget int64 = 750 << 20
+	for _, tc := range []struct{ used int64; advertised uint64; allowed bool }{
+		{0, 150 << 20, true},
+		{700 << 20, 50 << 20, true},
+		{700 << 20, 51 << 20, false},
+		{budget, 1, false},
+		{-1, 0, false},
+		{budget + 1, 0, false},
+		{0, ^uint64(0), false},
+	} {
+		if got := runtimeExpansionWithinBudget(tc.used, tc.advertised, budget); got != tc.allowed {
+			t.Fatalf("total=%d, advertised=%d: expected %v, got %v", tc.used, tc.advertised, tc.allowed, got)
+		}
+	}
+}
