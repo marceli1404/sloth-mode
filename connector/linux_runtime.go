@@ -43,6 +43,8 @@ func extractLinuxRuntime(archive, dest string) error {
 	found := false
 	type delayedLink struct{ file, target string }
 	symlinks := []delayedLink{}
+	aliases := map[string]string{}
+	regular := map[string]bool{}
 	for {
 		h, err := tr.Next()
 		if err == io.EOF {
@@ -51,19 +53,20 @@ func extractLinuxRuntime(archive, dest string) error {
 		if err != nil {
 			return err
 		}
+		// Count and validate every TAR header, including skipped directories.
+		count++
+		if count > 700 {
+			return errors.New("too many archive entries")
+		}
+		normalized := filepath.ToSlash(filepath.Clean(h.Name))
+		if h.Name == "" || strings.Contains(h.Name, "\\") || !filepath.IsLocal(h.Name) || strings.Contains(normalized, ":") {
+			return errors.New("unsafe archive member")
+		}
 		if h.Typeflag == tar.TypeDir {
 			continue
 		}
 		if h.Typeflag != tar.TypeReg && h.Typeflag != tar.TypeRegA && h.Typeflag != tar.TypeSymlink {
 			return fmt.Errorf("unexpected archive entry type %d", h.Typeflag)
-		}
-		count++
-		if count > 700 {
-			return errors.New("too many archive files")
-		}
-		normalized := filepath.ToSlash(filepath.Clean(h.Name))
-		if h.Name == "" || strings.Contains(h.Name, "\\") || !filepath.IsLocal(h.Name) || strings.Contains(normalized, ":") {
-			return errors.New("unsafe archive member")
 		}
 		name := filepath.Base(normalized)
 		if name == "" || name == "." || name == ".." {
@@ -80,6 +83,7 @@ func extractLinuxRuntime(archive, dest string) error {
 				return errors.New("unsafe runtime library link")
 			}
 			symlinks = append(symlinks, delayedLink{path, target})
+			aliases[name] = target
 			continue
 		}
 		if h.Size < 0 || h.Size > 150<<20 {
@@ -108,13 +112,25 @@ func extractLinuxRuntime(archive, dest string) error {
 		if n != h.Size {
 			return errors.New("incomplete runtime entry")
 		}
+		regular[name] = true
 		if name == "llama-server" {
 			found = true
 		}
 	}
+	// Every library alias must resolve to a regular file, never an alias cycle.
 	for _, link := range symlinks {
-		if !names[link.target] {
-			return errors.New("dangling binary symlink")
+		visited := map[string]bool{}
+		target := link.target
+		for !regular[target] {
+			if visited[target] || !names[target] {
+				return errors.New("dangling or cyclic runtime library link")
+			}
+			visited[target] = true
+			next, ok := aliases[target]
+			if !ok {
+				return errors.New("runtime library link does not resolve to a regular file")
+			}
+			target = next
 		}
 		if e = os.Symlink(link.target, link.file); e != nil {
 			return e
