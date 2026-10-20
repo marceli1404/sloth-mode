@@ -64,6 +64,9 @@ The companion listens on **127.0.0.1:39871** and requires explicit browser pairi
 
 ## Release status
 
+For hardware tests and guest/account privacy checks, use the [release validation checklist](docs/RELEASE_VALIDATION.md). CI builds alone do not establish device-level reliability.
+
+
 The Linux port is **beta**. Linux x86-64 has passed a headless connector smoke test; ARM64 was cross-compiled but not tested on physical hardware. GPU acceleration and first real Gemma inference require a machine-level test. Windows binaries are not code-signed. Don't rely on the preview in sensitive workflows without reviewing the code.
 
 ## Contributing

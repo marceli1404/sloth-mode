@@ -13,8 +13,10 @@ jobs:
         with:
           go-version: '1.26.x'
           cache: false
-      - name: Connector tests
+      - name: Connector tests and static analysis
         run: cd connector && go test ./... && go vet ./...
+      - name: Connector race detector
+        run: cd connector && go test -race ./...
       - name: Compile Linux binaries
         run: bash scripts/build-linux.sh
   windows:
