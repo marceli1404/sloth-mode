@@ -1,17 +1,20 @@
+# Private local data, credentials, and exports
 .env
 .env.*
 !.env.example
 *.pem
 *.key
+*.p12
 *.pfx
 *secret*.json
 *token*.json
 bridge-secret*
-account-link.json
 integrations.vault.json
+account-link.json
 *.db
 *.sqlite*
 *.log
+# Artifacts and binaries
 build/
 dist/
 bin/
@@ -19,9 +22,15 @@ linux/bin/
 installer/payload/*.exe
 *.exe
 *.dll
+*.so
+*.dylib
 *.gguf
 *.zip
 *.tar.gz
 *.mp4
-node_modules/
+*.mov
+*.png
 __pycache__/
+*.pyc
+node_modules/
+.DS_Store

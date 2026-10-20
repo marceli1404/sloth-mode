@@ -1,23 +1,73 @@
 # 🦥 Sloth Mode
 
-**Slow down. Get things done.** A local-first AI productivity companion with optional accounts.
+**Slow down. Get things done.** A local-first AI productivity assistant with optional cloud accounts.
 
-[Website](https://sloth.marceli.dev) · [Workspace](https://sloth.marceli.dev/dashboard) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Website](https://sloth.marceli.dev) · [Try the workspace](https://sloth.marceli.dev/dashboard) · [Issue tracker](https://github.com/marceli1404/sloth-mode/issues)
 
-The Sloth Mode companion runs on Windows and Linux. It pairs explicitly with the browser and can run Gemma 3 locally through llama.cpp without requiring Ollama or an account.
+Sloth Mode uses **Gemma 3 GGUF through `llama.cpp`** for optional local inference. The companion runs in the background on Windows or Linux and pairs explicitly with the web interface through a loopback API. **Ollama and an account are not required.** The public Quiet Lab sample demo uses illustrative deterministic sorting, not actual Gemma inference.
 
-- **Guest:** use the public Quiet Lab demonstration, local companion, and local notes.
-- **Signed in (optional):** explicitly save account-tracked tasks and manage linked devices.
-- **Privacy:** local notes are not automatically synced to the cloud. The public Quiet Lab example uses deterministic demonstration rules, not local Gemma inference.
+## What works today
 
-## Open-source import status
+- Local task capture and a paired browser workspace, with notes stored on the user's computer.
+- Optional local Gemma using separately downloaded and checksum-verified GGUF weights and `llama.cpp`.
+- A Windows native connector + installer, and a Linux x86-64/ARM64 background connector with an application launcher.
+- Optional account sign-in via separately configured Cloudflare Access (Google, GitHub, email); *only explicitly saved account-tracked tasks* are stored in the account database. Local notes are not silently synced.
+- A public demo and source-linked triage interface at `sloth.marceli.dev`.
 
-The website source is available under `web/`. The cross-platform connector, Windows installer, Linux installer, and cloud service source have been prepared and tested as a separate source release and are being imported into this repository. Until then, **this GitHub tree is not a full standalone build of the live application**.
+## Start from source
 
-Once the source import is complete, the `connector/`, `installer/`, `linux/`, `cloud/`, and `scripts/` directories will contain the native and cloud components and reproducible build instructions.
+Requirements: **Go 1.23+**. Windows and Linux build scripts are under [`scripts/`](scripts/).
 
-## Security and third parties
+**Linux (x86-64, systemd user services preferred):**
+```bash
+./scripts/build-linux.sh
+./linux/install.sh
+```
+Run `sloth-mode-connector --setup` via the installed launcher or `~/.local/share/sloth-mode/bin/sloth-mode-connector --setup`.
 
-See [SECURITY.md](SECURITY.md). Cloudflare Access, OAuth providers, and the D1 database require your own configuration; no production credentials or model weights are distributed.
+**Windows (PowerShell with Go on PATH):**
+```powershell
+.\scripts\build-windows.ps1
+```
+The installer is created as `build/SlothMode-Setup.exe`. Run it, then open **Setup & Pairing**. The installer builds the embedded connector first; binaries are intentionally excluded from Git history.
 
-**MIT Licensed.** Gemma weights and llama.cpp have their own licenses and distribution terms.
+**Test:**
+```bash
+cd connector && go test ./... && go vet ./...
+cd ../cloud && node --test account.test.mjs
+```
+Cloud tests require Node.js 22+ with the built-in `node:sqlite` available.
+
+## Privacy and accounts
+
+| Feature | Guest | Signed in |
+| --- | --- | --- |
+| Local connector & notes | ✅ | ✅ |
+| Quiet Lab sample demo | ✅ | ✅ |
+| Local Gemma | ✅ (after model setup) | ✅ |
+| Save tasks in cloud account | — | ✅, opt-in |
+| Manage account-linked devices | — | ✅ |
+| Access your home Gemma remotely | Not implemented | Not implemented |
+
+The companion listens on **127.0.0.1:39871** and requires explicit browser pairing. A signed-in browser account is *not* the same thing as permission to use the local connector. See [SECURITY.md](SECURITY.md).
+
+## Project map
+
+- [`connector/`](connector/) — native Windows + Linux background app, note storage, local model management, pairing.
+- [`installer/`](installer/) — graphical Windows installer/updater source.
+- [`linux/`](linux/) — per-user Linux installer and launcher assets.
+- [`web/`](web/) — static page source (the hosted version is served by Cloudflare Workers).
+- [`cloud/`](cloud/) — Cloudflare Access/D1 account service source and schema, with separately documented integration steps.
+- [`scripts/`](scripts/) — reproducible source builds and signing helpers.
+
+**Self-hosting note:** The account service uses Cloudflare Access, D1 and registered OAuth providers. The files under `cloud/` include an earlier, testable service implementation and task-API integration sample; they are **not an out-of-the-box copy of the entire live deployment**. Configure your own identity providers, domains, secrets and databases. Never reuse the owner's production account or database identifiers. For that reason, self-hosting parity with production is still being documented; see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
+## Release status
+
+The Linux port is **beta**. Linux x86-64 has passed a headless connector smoke test; ARM64 was cross-compiled but not tested on physical hardware. GPU acceleration and first real Gemma inference require a machine-level test. Windows binaries are not code-signed. Don't rely on the preview in sensitive workflows without reviewing the code.
+
+## Contributing
+
+Contributions and issue reports are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+Released under the **MIT License** (see [LICENSE](LICENSE)). Gemma weights, `llama.cpp`, Google/GitHub logos and other third-party services retain their own licenses and terms; **models are not included in this repo**.

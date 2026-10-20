@@ -1,7 +1,12 @@
 # Contributing to Sloth Mode
 
-Contributions and reproducible bug reports are welcome. Open an issue, make a focused feature branch, add regression tests, and submit a PR explaining behavior and security/privacy implications.
+Thanks for helping make local-first AI more accessible.
 
-Please preserve **guest mode**, explicit pairing, reduced-motion accessibility, and the opt-in nature of cloud task storage. Never commit local task databases, logs, passwords, API credentials, model weights or private signing keys.
+1. Open an issue describing a bug or improvement before making invasive changes.
+2. Fork the repo and work on a feature branch; keep changes small and focused.
+3. Run `go test ./...` and `go vet ./...` under `connector/`; for installer changes, run `go test ./...` under `installer/` after building the Windows payload.
+4. Include tests for pairing, authentication, credential handling, and model downloads. Respect opt-in cloud sync and guest mode.
+5. Do not include credentials, personally identifying logs, real saved tasks, paid API keys, binary weights or any private update-signing key.
+6. Open a PR with setup steps, screenshots for UI changes, and a concise risk assessment.
 
-For the source release, use Go 1.23+, run `go test ./...` and `go vet ./...` inside `connector/`, and test installer changes on Windows.
+We prefer accessible interfaces, native reduced-motion support, safe defaults and real benchmarks over simulated claims.
