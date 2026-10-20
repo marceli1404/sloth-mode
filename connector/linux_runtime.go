@@ -123,11 +123,11 @@ func extractLinuxRuntime(archive, dest string) error {
 	if !found {
 		return errors.New("llama-server missing from official archive")
 	}
-	if e = os.MkdirAll(filepath.Dir(dest), 0700); e != nil {
-		return e
+	// Publishing with os.Rename is not safe here: on Linux it can replace an
+	// existing *empty* destination directory between the existence check and
+	// the rename. renameat2(RENAME_NOREPLACE) makes refusal atomic.
+	if err := publishLinuxRuntimeDir(tmp, dest); err != nil {
+		return fmt.Errorf("unable to publish runtime without replacing an existing directory: %w", err)
 	}
-	if _, e = os.Stat(dest); e == nil {
-		return errors.New("runtime destination already exists; refusing overwrite")
-	}
-	return os.Rename(tmp, dest)
+	return nil
 }
