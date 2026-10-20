@@ -248,6 +248,11 @@ func extractRuntime(zipFile, dest string) error {
 		return err
 	}
 	defer zr.Close()
+	// Bound the number of entries up front, including directory headers.
+	// Skipping directories would let an archive consume unbounded processing.
+	if len(zr.File) > 700 {
+		return errors.New("too many runtime archive entries")
+	}
 	parent := filepath.Dir(dest)
 	if err = os.MkdirAll(parent, 0700); err != nil {
 		return err
@@ -264,6 +269,10 @@ func extractRuntime(zipFile, dest string) error {
 	const maxExpandedRuntimeBytes int64 = 750 << 20
 	names := make(map[string]bool)
 	for _, f := range zr.File {
+		// Validate directory headers too, even though we flatten member paths.
+		if f.Name == "" || strings.Contains(f.Name, "\\") || !filepath.IsLocal(filepath.FromSlash(f.Name)) {
+			return errors.New("unsafe runtime zip path")
+		}
 		if f.FileInfo().IsDir() {
 			continue
 		}
