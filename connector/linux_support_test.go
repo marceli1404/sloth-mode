@@ -97,3 +97,40 @@ func TestAccountLinkingDoesNotRequireKeyringForGuest(t *testing.T) {
 		t.Fatal("guest unexpectedly linked")
 	}
 }
+
+func TestRejectBackslashAndPreserveExistingLinuxRuntime(t *testing.T) {
+	for _, name := range []string{`..\outside`, `../../outside`, `/etc/passwd`} {
+		t.Run(name, func(t *testing.T) {
+			tarball := writeTestTar(t, []struct {
+				name string
+				kind byte
+				link string
+				text string
+			}{{name: name, kind: tar.TypeReg, text: "bad"}, {name: "bin/llama-server", kind: tar.TypeReg, text: "binary"}})
+			if err := extractLinuxRuntime(tarball, filepath.Join(t.TempDir(), "runtime")); err == nil {
+				t.Fatal("unsafe tar accepted")
+			}
+		})
+	}
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "runtime")
+	if err := os.Mkdir(dest, 0700); err != nil {
+		t.Fatal(err)
+	}
+	sentinel := filepath.Join(dest, "keep")
+	if err := os.WriteFile(sentinel, []byte("stay"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	tarball := writeTestTar(t, []struct {
+		name string
+		kind byte
+		link string
+		text string
+	}{{name: "bin/llama-server", kind: tar.TypeReg, text: "binary"}})
+	if err := extractLinuxRuntime(tarball, dest); err == nil {
+		t.Fatal("overwritten runtime")
+	}
+	if data, err := os.ReadFile(sentinel); err != nil || string(data) != "stay" {
+		t.Fatalf("old runtime removed: %v", err)
+	}
+}

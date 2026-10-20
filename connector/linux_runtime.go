@@ -26,9 +26,13 @@ func extractLinuxRuntime(archive, dest string) error {
 		return e
 	}
 	defer gz.Close()
-	tmp := dest + "-extract"
-	_ = os.RemoveAll(tmp)
-	if e = os.MkdirAll(tmp, 0700); e != nil {
+	parent := filepath.Dir(dest)
+	if e = os.MkdirAll(parent, 0700); e != nil {
+		return e
+	}
+	// A uniquely allocated directory prevents deletion of unrelated data.
+	tmp, e := os.MkdirTemp(parent, ".sloth-runtime-*")
+	if e != nil {
 		return e
 	}
 	defer os.RemoveAll(tmp)
@@ -58,7 +62,7 @@ func extractLinuxRuntime(archive, dest string) error {
 			return errors.New("too many archive files")
 		}
 		normalized := filepath.ToSlash(filepath.Clean(h.Name))
-		if strings.HasPrefix(normalized, "../") || normalized == ".." || strings.HasPrefix(normalized, "/") || strings.Contains(normalized, ":") {
+		if h.Name == "" || strings.Contains(h.Name, "\\") || !filepath.IsLocal(h.Name) || strings.Contains(normalized, ":") {
 			return errors.New("unsafe archive member")
 		}
 		name := filepath.Base(normalized)

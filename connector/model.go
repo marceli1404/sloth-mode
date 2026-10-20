@@ -250,14 +250,19 @@ func extractRuntime(zipFile, dest string) error {
 		return err
 	}
 	defer zr.Close()
-	tmp := dest + "-extract"
-	os.RemoveAll(tmp)
-	if err = os.MkdirAll(tmp, 0700); err != nil {
+	parent := filepath.Dir(dest)
+	if err = os.MkdirAll(parent, 0700); err != nil {
+		return err
+	}
+	// Never remove a predictable -extract directory: another process might own it.
+	tmp, err := os.MkdirTemp(parent, ".sloth-runtime-*")
+	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmp)
 	found := false
 	count := 0
+	names := make(map[string]bool)
 	for _, f := range zr.File {
 		if f.FileInfo().IsDir() {
 			continue
@@ -269,15 +274,17 @@ func extractRuntime(zipFile, dest string) error {
 		if f.Mode()&os.ModeSymlink != 0 {
 			return errors.New("symlinks not allowed in runtime")
 		}
+		// Explicitly reject all archive separators that are ambiguous across OSes.
+		// Only archive basenames are placed in the fresh private extraction directory.
 		rel := filepath.FromSlash(f.Name)
-		if filepath.IsAbs(rel) || strings.HasPrefix(rel, "..") || strings.Contains(rel, ":") {
+		if f.Name == "" || strings.Contains(f.Name, "\\") || !filepath.IsLocal(rel) {
 			return errors.New("unsafe runtime zip path")
 		}
-		// Flatten the release binary directory to keep supporting DLLs together.
 		name := filepath.Base(rel)
-		if name == "." || name == ".." {
-			continue
+		if name == "." || name == ".." || strings.Contains(name, ":") || names[strings.ToLower(name)] {
+			return errors.New("unsafe or duplicated runtime filename")
 		}
+		names[strings.ToLower(name)] = true
 		if f.UncompressedSize64 > 150<<20 {
 			return errors.New("oversized runtime file")
 		}
@@ -285,20 +292,24 @@ func extractRuntime(zipFile, dest string) error {
 		if err != nil {
 			return err
 		}
-		p := filepath.Join(tmp, name)
-		dst, err := os.OpenFile(p, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		target := filepath.Join(tmp, name)
+		dst, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 		if err != nil {
 			src.Close()
 			return err
 		}
-		_, err = io.Copy(dst, io.LimitReader(src, 150<<20+1))
+		// Limit actual expanded bytes, not just the untrusted ZIP header length.
+		n, copyErr := io.Copy(dst, io.LimitReader(src, (150<<20)+1))
 		src.Close()
 		closeErr := dst.Close()
-		if err != nil {
-			return err
+		if copyErr != nil {
+			return copyErr
 		}
 		if closeErr != nil {
 			return closeErr
+		}
+		if n > 150<<20 || uint64(n) != f.UncompressedSize64 {
+			return errors.New("unexpected runtime entry size")
 		}
 		if strings.EqualFold(name, "llama-server.exe") {
 			found = true
@@ -307,17 +318,28 @@ func extractRuntime(zipFile, dest string) error {
 	if !found {
 		return errors.New("llama-server.exe missing from runtime release")
 	}
-	if err = os.MkdirAll(filepath.Dir(dest), 0700); err != nil {
+	if _, err = os.Lstat(dest); err == nil {
+		return errors.New("runtime destination already exists; refusing overwrite")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	_ = os.RemoveAll(dest)
 	return os.Rename(tmp, dest)
 }
+
 func installAI(ctx context.Context, base, backend string, status statusFunc) error {
 	if backend != "cpu" && backend != "vulkan" {
 		return errors.New("invalid runtime mode")
 	}
-	dir := filepath.Dir(runtimePath(base, backend))
+	// A custom SLOTH_LLAMA_SERVER may be used for inference but must never
+	// become an install or extraction destination.
+	managedDir := filepath.Join(base, "runtime-"+backend)
+	if runtime.GOOS == "linux" && os.Getenv("SLOTH_LLAMA_SERVER") != "" {
+		custom := runtimePath(base, backend)
+		if _, err := os.Stat(custom); err != nil {
+			return errors.New("custom llama-server unavailable; unset SLOTH_LLAMA_SERVER to install the managed runtime")
+		}
+	}
 	if _, err := os.Stat(runtimePath(base, backend)); err != nil {
 		status("Finding official llama.cpp " + runtime.GOOS + " runtime...")
 		rel, err := getRelease(ctx)
@@ -346,9 +368,9 @@ func installAI(ctx context.Context, base, backend string, status statusFunc) err
 		}
 		status("Unpacking llama.cpp native runtime...")
 		if runtime.GOOS == "linux" {
-			err = extractLinuxRuntime(zipFile, dir)
+			err = extractLinuxRuntime(zipFile, managedDir)
 		} else {
-			err = extractRuntime(zipFile, dir)
+			err = extractRuntime(zipFile, managedDir)
 		}
 		if err != nil {
 			return err
