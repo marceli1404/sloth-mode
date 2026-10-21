@@ -478,11 +478,14 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 		return nil, fmt.Errorf("failed starting llama.cpp: %w", err)
 	}
 	e := &inferEngine{cmd: cmd, host: "http://127.0.0.1:" + strconv.Itoa(port), client: &http.Client{Timeout: 3 * time.Minute}}
-	if logFile != nil {
-		go func() { _ = cmd.Wait(); _ = logFile.Close() }()
-	} else {
-		go cmd.Wait()
-	}
+	// Always reap the child and retain the exit result. Previously an immediate
+	// llama.cpp crash was silently ignored while the UI waited 95 seconds.
+	processExit := make(chan error, 1)
+	go func() {
+		exitErr := cmd.Wait()
+		if logFile != nil { _ = logFile.Close() }
+		processExit <- exitErr
+	}()
 	status("Loading Gemma into memory (first run may take a while)...")
 	check := &http.Client{Timeout: 1500 * time.Millisecond}
 	deadline := time.Now().Add(95 * time.Second)
@@ -491,6 +494,9 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 		case <-ctx.Done():
 			e.stop()
 			return nil, ctx.Err()
+		case exitErr := <-processExit:
+			if exitErr == nil { return nil, errors.New("llama.cpp exited before reporting ready; see inference.log") }
+			return nil, fmt.Errorf("llama.cpp exited during model loading: %w; see inference.log (try CPU if Vulkan failed)", exitErr)
 		default:
 		}
 		resp, err := check.Get(e.host + "/health")
@@ -501,7 +507,13 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 				return e, nil
 			}
 		}
-		time.Sleep(550 * time.Millisecond)
+		select {
+		case <-ctx.Done(): e.stop(); return nil, ctx.Err()
+		case exitErr := <-processExit:
+			if exitErr == nil { return nil, errors.New("llama.cpp exited before reporting ready; see inference.log") }
+			return nil, fmt.Errorf("llama.cpp exited during model loading: %w; see inference.log", exitErr)
+		case <-time.After(550 * time.Millisecond):
+		}
 	}
 	e.stop()
 	return nil, errors.New("Gemma server didn't become ready. See inference.log; try CPU mode if Vulkan failed")
