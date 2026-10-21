@@ -162,4 +162,6 @@ local workflow is solid would I consider secure remote features.
 - [ ] Partner category **Best Use of Gemma** claimed only after meaningful use demonstrated.
 - [ ] Account optionality, beta limitations and deterministic preview distinction retained.
 - [ ] No secrets, private pairing tokens, real notes or other users' data in media.
+- [ ] Confirm the DEV/MLH eligibility rules apply: entrant meets the age-of-majority requirement, has an eligible account, and this project started during the 19–25 October entry period.
+- [ ] Submit **one entry only** for this Week 3 challenge; the rules consider only the first.
 - [ ] Publish on DEV by **25 October 2026, 11:59 p.m. PDT**.
