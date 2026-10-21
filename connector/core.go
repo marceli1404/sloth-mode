@@ -320,6 +320,12 @@ func validateItems(got []TriageItem, inputs []Task) error {
 		if len(strings.TrimSpace(x.Summary)) == 0 || len([]rune(x.Summary)) > 200 || len(strings.TrimSpace(x.NextAction)) == 0 || len([]rune(x.NextAction)) > 220 {
 			return errors.New("AI returned invalid summary or action")
 		}
+		// An unfinished task must not be saved with a contradictory no-action
+		// instruction, even if the model otherwise returned valid JSON.
+		action := strings.Trim(strings.ToLower(strings.TrimSpace(x.NextAction)), ".! ")
+		if x.Priority != "no_action" && (action == "no action needed" || action == "no action" || action == "none" || action == "n/a" || action == "nothing to do") {
+			return errors.New("AI returned an unfinished task without a next action (nothing saved)")
+		}
 	}
 	return nil
 }

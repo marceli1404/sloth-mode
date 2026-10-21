@@ -60,11 +60,20 @@ func TestRealGemmaTriageOptIn(t *testing.T) {
 	if err := validateItems(items, inputs); err != nil {
 		t.Fatalf("Gemma result omitted, duplicated, or changed task IDs: %v", err)
 	}
+	// These fixtures distinguish useful prioritization from JSON-only success:
+	// a bill due tomorrow needs attention, optional reading is still unfinished,
+	// and a completed task should not create more work.
+	wantPriority := map[int64]string{1: "now", 2: "later", 3: "no_action"}
+	for _, item := range items {
+		if item.Priority != wantPriority[item.ID] {
+			t.Errorf("task #%d priority=%s, want %s", item.ID, item.Priority, wantPriority[item.ID])
+		}
+	}
 	t.Logf("REAL GEMMA RESULT: OS=%s arch=%s backend=%s quant=%s tasks=%d startup=%s triage=%s",
 		runtime.GOOS, runtime.GOARCH, backend, preferredQuant(base, profileHardware()),
 		len(items), bootDuration.Round(time.Millisecond), triageDuration.Round(time.Millisecond))
 	for _, item := range items {
-		t.Logf("task #%d priority=%s category=%s", item.ID, item.Priority, item.Category)
+		t.Logf("task #%d priority=%s category=%s summary=%q next_action=%q", item.ID, item.Priority, item.Category, item.Summary, item.NextAction)
 	}
 	t.Log("This test verifies local inference while online; repeat with the network disconnected for the offline release gate. No manual-effort savings are inferred from these timings.")
 }

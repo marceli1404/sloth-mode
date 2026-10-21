@@ -26,7 +26,8 @@ elements, and eligibility rules are on the [official rules page](https://dev.to/
   does not establish model inference on a real machine.
 - [ ] PR #13's runtime fix has CI evidence, but no hardware inference proof is
   recorded yet. Keep the real Gemma result pending until a machine run exists.
-- [ ] Run Gemma 3 4B through the local connector with fictional notes. Record
+- [x] Run Gemma 3 4B through the local engine with fictional notes. Recorded in
+  [CPU_DEMO_REPORT.md](CPU_DEMO_REPORT.md); browser pairing still needs validation. Record
   OS, CPU, RAM, GPU/driver if used, quantization, runtime/backend, cold or warm
   state, observed result, and any failure.
 - [ ] Confirm every output maps to an existing source note and that an
@@ -66,4 +67,6 @@ elements, and eligibility rules are on the [official rules page](https://dev.to/
 - The public Quiet Lab is explicitly illustrative and deterministic.
 - Release validation still calls for a real first inference and a separate
   network-off repeat on physical hardware.
-- No human-versus-model time-saving result is recorded here.
+- A real CPU engine test passed on three fabricated notes; priorities and next
+  actions were checked after correcting issues found in earlier runs.
+- No human-versus-model time-saving result or network-off result is recorded.

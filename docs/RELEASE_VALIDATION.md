@@ -55,7 +55,12 @@ The repository includes a **real inference** smoke test deliberately
 **skipped by default**. It requires a previously installed model and
 llama.cpp runtime; it neither downloads files nor reads personal task notes.
 It tests three fabricated notes, source-ID integrity, JSON structure,
-and measures actual startup and generation time.
+and expected priorities for a bill due tomorrow, unfinished optional reading,
+and a completed task. It also rejects obvious contradictions between an
+actionable priority and a "No action needed" instruction, and measures actual
+startup and generation time. A small passing fixture is not a general quality
+benchmark. See [the recorded CPU run](CPU_DEMO_REPORT.md) for measured results
+and remaining validation limits.
 
 Linux:
 

@@ -33,13 +33,13 @@ edit, complete, or delete.
 ## Demo
 
 - **Website and interactive preview:** https://sloth.marceli.dev
-- **Real local Gemma demo:** [ADD A PUBLIC VIDEO OR ANONYMOUSLY ACCESSIBLE CLIP AFTER A SUCCESSFUL HARDWARE RUN]
-- **Approved project video:** [ADD THE VERIFIED PUBLIC VIDEO URL OR EMBED, IF USED]
+- **Recorded CPU results:** https://github.com/marceli1404/sloth-mode/blob/improve/hackathon-judge-experience/docs/CPU_DEMO_REPORT.md
 
 The public Quiet Lab preview is an illustrative rules-based walkthrough. It
 does not call Gemma. The real model runs on the paired computer after the user
-approves the model and runtime download. The clip above should show that real
-path with fictional notes.
+approves the model and runtime download. The linked CPU report records actual model output on fictional notes; the
+public browser preview remains rules-based. A video of the paired browser
+workflow has not been recorded yet.
 
 ## Code
 
@@ -64,9 +64,12 @@ Browser workspace
 
 Model weights and the native runtime are downloaded separately after user
 approval and verified by checksum. The first model download is about 2.5 GB.
-The core workflow is designed to run locally after setup; a real-machine
-inference and network-off result are still [PENDING / VERIFIED ON: add OS,
-hardware, model quantization, and result].
+A real CPU smoke test passed on Windows 11 using Gemma 3 4B Q4_K_M through
+llama.cpp, with four CPU threads and no GPU layers. Startup took 2.766 seconds
+and generation took 14.808 seconds for three fictional notes. The bill due
+tomorrow was marked Do next, optional reading was saved for later, and a
+completed task required no action. This small check does not establish general
+quality or time saved. A separate network-off test remains pending.
 
 An account is optional. A signed-in user can explicitly save account-tracked
 tasks, but local notes are not silently synced. Remote Gemma execution is not
@@ -85,29 +88,17 @@ trust. The note store, inference request, and validation path are inspectable
 in the repository. Model weights and `llama.cpp` keep their own licenses and
 terms.
 
-## My Agent Session
-
-[OPTIONAL: Add a DevRelay session link or embed if one is available. Otherwise,
-remove this section.]
-
 ## The Lazy Payoff
 
-[Use this section only after a real run and a fair comparison. If no real use
-or measurement is available, remove this section before publishing.]
-
-I tested the same [N] fictional notes by hand and with local Gemma on
-[OS / CPU / RAM / GPU and driver / quantization]. Manual sorting took [TIME];
-Gemma took [TIME, including or excluding cold start stated clearly]. I checked
-[N]/[N] source notes and judged [N]/[N] suggestions usable. Model download and
-setup took [TIME] and are reported separately.
-
-I have not measured time saved yet. Do not publish the bracketed figures or
-claim a measured saving until the run and comparison are complete.
+The intended payoff is less manual sorting between capturing a thought and
+choosing what to do next. I have not measured human-versus-model time savings.
+The CPU run above reports execution time and three checked suggestions only.
 
 ## Prize Categories
 
-**Best Use of Gemma** — include this category only after the published demo
-shows Gemma performing real work in the product.
+**Best Use of Gemma** — Gemma is the local triage engine, not an optional
+decoration. The CPU report above records its real output; the public browser
+preview is separately labelled as rules-based.
 
 ---
 
