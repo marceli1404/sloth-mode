@@ -324,9 +324,12 @@ func extractRuntime(zipFile, dest string) error {
 		if f.Name == "" || strings.Contains(f.Name, "\\") || !filepath.IsLocal(rel) {
 			return errors.New("unsafe runtime zip path")
 		}
-		name := filepath.Base(rel)
-		if name == "." || name == ".." || strings.Contains(name, ":") || names[strings.ToLower(name)] {
-			return errors.New("unsafe or duplicated runtime filename")
+		name, nameErr := safeRuntimeArchiveName(f.Name)
+		if nameErr != nil {
+			return fmt.Errorf("unsafe runtime ZIP entry: %w", nameErr)
+		}
+		if names[strings.ToLower(name)] {
+			return errors.New("duplicated runtime filename")
 		}
 		names[strings.ToLower(name)] = true
 		if f.UncompressedSize64 > 150<<20 {
