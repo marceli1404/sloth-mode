@@ -185,3 +185,9 @@ html.sm-workspace-ready[data-sloth-page="dashboard"] .sm-window-pane section[hid
 }
 @media(max-width:360px){.sm-window-tabs{justify-content:flex-start}.sm-window-tab{flex-basis:65px}.sm-start-side{grid-template-columns:1fr}.sm-mini-action{min-height:70px}}
 @media(prefers-reduced-motion:reduce){.sm-mini-action,.sm-start-action{transition:none!important;transform:none!important}}
+
+/* Use one recognizable Sloth Mode symbol everywhere: homepage, workspace, account and native icon. */
+.sm-window-logo-mark{background:#173b35!important;color:#d3ebb5!important;border-radius:10px!important;overflow:hidden}
+.sm-window-logo-mark svg{width:28px;height:28px;display:block;flex-shrink:0}
+.site-header .brand-mark{border-radius:10px}
+@media(max-width:690px){.sm-window-logo-mark svg{width:23px;height:23px}}
