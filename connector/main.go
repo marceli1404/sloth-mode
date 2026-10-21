@@ -10,18 +10,19 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 )
 
 const bridgePort = "39871"
 const bridgeOrigin = "https://sloth.marceli.dev"
-const bridgeVersion = "0.15.0-linux-beta"
+const bridgeVersion = "0.15.0-beta"
 
 func main() {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			log.Printf("fatal recovered: %v", recovered)
+			log.Printf("fatal panic recovered: %v\n%s", recovered, debug.Stack())
 			startupError("Sloth Mode encountered an error. Notes are safe. See connector.log.")
 		}
 	}()
@@ -70,7 +71,14 @@ func main() {
 	}
 	heartbeatStop := make(chan struct{})
 	defer close(heartbeatStop)
-	go runAccountHeartbeat(base, heartbeatStop)
+	go func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				log.Printf("account heartbeat panic recovered: %v\\n%s", recovered, debug.Stack())
+			}
+		}()
+		runAccountHeartbeat(base, heartbeatStop)
+	}()
 	srv := &http.Server{Handler: app.handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 8192, ErrorLog: log.Default()}
 	go func() {
 		e := srv.Serve(ln)

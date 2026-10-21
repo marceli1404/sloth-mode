@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -260,6 +261,10 @@ func startupError(msg string) { popup(0, "Sloth Mode connector", msg) }
 var embeddedIcon []byte
 
 func runTray(b *Bridge, s *http.Server) {
+	// The native hidden tray window and visible pairing window share a Win32
+	// message pump; creating it and GetMessage must run on the same OS thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	winBridge = b
 	winServer = s
 	cls := "SlothModeConnectorTray"

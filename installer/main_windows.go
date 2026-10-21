@@ -5,11 +5,15 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	_ "embed"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -38,6 +42,7 @@ const (
 	idCheckUpdates     = 305
 	wmUpdateReady      = 0x8000 + 22
 	wmHardwareReady    = 0x8000 + 40
+	wmConnectorChecked = 0x8000 + 41
 )
 
 type winClass struct {
@@ -95,6 +100,9 @@ var (
 	graphicsLabel    uintptr
 	graphicsMu       sync.Mutex
 	graphicsText     string
+	launchMu         sync.Mutex
+	launchReport     string
+	launchOK         bool
 )
 
 func utf16(s string) uintptr {
@@ -338,24 +346,71 @@ func finishDownload() {
 	}
 	status("Verified update installer opened. Close your running connector when prompted.")
 }
+// Poll the real localhost health route; starting a process is not proof it is ready.
+// Work and process waiting are background-only, and UI changes use WM_APP messages.
+func probeLocalCompanion() bool {
+	return probeCompanionHealth(&http.Client{Timeout: 500 * time.Millisecond}, "http://127.0.0.1:39871/v1/health")
+}
+// A listening port alone cannot establish that this is our connector.
+func probeCompanionHealth(client *http.Client, url string) bool {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil { return false }
+	req.Header.Set("Origin", "https://sloth.marceli.dev")
+	resp, err := client.Do(req)
+	if err != nil { return false }
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Content-Type"), "application/json") { return false }
+	var body struct { OK bool `json:"ok"`; Name string `json:"name"` }
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 2048)).Decode(&body); err != nil { return false }
+	return body.OK && body.Name == "Sloth Mode Connector"
+}
 func launchInstalled() {
-	// Never stop an existing background process without user approval.
 	connection, err := net.DialTimeout("tcp4", "127.0.0.1:39871", 350*time.Millisecond)
 	if err == nil {
 		_ = connection.Close()
-		status("Another connector is running. Exit the old version, then click Open pairing window.")
-		notify("Previous connector is still running", "An older Sloth Mode connector is using port 39871. Close it from the tray icon (or Task Manager) and click Open pairing window. Your notes and pairing key are safe.")
+		status("Another connector is already running. Close it before opening the updated version.")
+		notify("Previous connector is still running", "Exit the old Sloth Mode connector from the tray or Task Manager, then click Open pairing window. Local notes and keys are preserved.")
 		return
 	}
-	status("Opening the Setup & Pairing window...")
+	status("Starting connector and checking its local service…")
 	cmd := exec.Command(installedPath)
 	if e := cmd.Start(); e != nil {
-		status("Installed, but Windows could not start the connector. Check security prompts.")
-		notify("Launch error", "The app is installed but did not launch: "+e.Error())
-	} else {
-		status("Installed! Pairing window launched. Copy the key and connect the website.")
+		status("Windows could not launch the connector. Check security prompts.")
+		notify("Launch error", "The application could not start: "+e.Error())
+		return
 	}
+	owner := hwnd
+	go func() {
+		exited := make(chan error, 1)
+		go func(){ exited <- cmd.Wait() }()
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
+		timer := time.NewTimer(10 * time.Second)
+		defer timer.Stop()
+		report := "Connector did not become ready. See %LOCALAPPDATA%\\SlothModeNative\\connector.log"
+		ready := false
+		for !ready {
+			select {
+			case err := <-exited:
+				if err != nil { report = "Connector exited during startup: " + err.Error() + ". Check connector.log." } else { report = "Connector exited before pairing was ready. Check connector.log." }
+				goto finished
+			case <-ticker.C:
+				if probeLocalCompanion() {
+					report = "Connector is running. Open Setup & Pairing and copy your browser key."
+					ready = true
+				}
+			case <-timer.C:
+				goto finished
+			}
+		}
+	finished:
+		launchMu.Lock()
+		launchReport, launchOK = report, ready
+		launchMu.Unlock()
+		postMessage.Call(owner, wmConnectorChecked, 0, 0)
+	}()
 }
+
 func openFolder() {
 	dest, e := appTarget()
 	if e != nil {
@@ -377,6 +432,13 @@ var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 		return setStaticColors(w)
 	case wmDrawItem:
 		return paintButton(l)
+	case wmConnectorChecked:
+		launchMu.Lock()
+		report, ready := launchReport, launchOK
+		launchMu.Unlock()
+		status(report)
+		if !ready { notify("Connector startup", report) }
+		return 0
 	case wmHardwareReady:
 		graphicsMu.Lock()
 		v := graphicsText
@@ -420,6 +482,10 @@ var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 })
 
 func main() {
+	// A Win32 window and its GetMessage loop must stay on the creating OS thread.
+	// A normal Go goroutine can otherwise migrate to a different OS thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	makeTheme()
 	instance, _, _ := getModule.Call(0)
 	cls := "SlothModeInstallWindow"
@@ -443,7 +509,7 @@ func main() {
 		return
 	}
 	hwnd = h
-	ctrl("STATIC", "SLOTH MODE 0.14   /   DESKTOP COMPANION", 42, 30, 480, 26, 0, 0)
+	ctrl("STATIC", "SLOTH MODE "+installerVersion+"   /   DESKTOP COMPANION", 42, 30, 480, 26, 0, 0)
 	ctrl("STATIC", "A quieter way to get things done.", 42, 74, 590, 47, 0, 0)
 	ctrl("STATIC", "Your own Gemma AI, running on this Windows PC.", 42, 130, 555, 26, 0, 0)
 	ctrl("STATIC", "STEP 01   LOCAL-FIRST INSTALL", 42, 219, 625, 23, 0, 0)

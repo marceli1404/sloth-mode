@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -107,17 +108,28 @@ type asset struct {
 type release struct {
 	Tag    string  `json:"tag_name"`
 	Assets []asset `json:"assets"`
+	Draft bool `json:"draft"`
 }
 
+// Match complete official archive names, never backend/architecture substrings.
+var windowsRuntimeName = regexp.MustCompile(`^llama-(b[0-9]+|v[0-9]+\.[0-9]+\.[0-9]+)-bin-win-(cpu-|vulkan-)?(x64|arm64)\.zip$`)
+
 func pickAsset(assets []asset, backend string) (asset, error) {
+	return pickAssetForPlatform(assets, backend, runtime.GOOS, runtime.GOARCH)
+}
+
+func pickAssetForPlatform(assets []asset, backend, goos, goarch string) (asset, error) {
+	if backend != "cpu" && backend != "vulkan" {
+		return asset{}, errors.New("invalid runtime mode")
+	}
+	arch := map[string]string{"amd64": "x64", "arm64": "arm64"}[goarch]
+	if arch == "" {
+		return asset{}, fmt.Errorf("unsupported runtime architecture %s", goarch)
+	}
 	for _, a := range assets {
 		n := strings.ToLower(a.Name)
-		if runtime.GOOS == "linux" {
-			arch := "x64"
-			if runtime.GOARCH == "arm64" {
-				arch = "arm64"
-			}
-			// CPU artifact is llama-bNNN-bin-ubuntu-x64.tar.gz (no "cpu" in name).
+		switch goos {
+		case "linux":
 			expected := "bin-ubuntu-" + arch + ".tar.gz"
 			if backend == "vulkan" {
 				expected = "bin-ubuntu-vulkan-" + arch + ".tar.gz"
@@ -125,11 +137,14 @@ func pickAsset(assets []asset, backend string) (asset, error) {
 			if strings.HasSuffix(n, expected) && strings.HasPrefix(n, "llama-") {
 				return a, nil
 			}
-		} else if strings.HasSuffix(n, ".zip") && strings.Contains(n, "bin-win-") && strings.Contains(n, "x64") && ((backend == "cpu" && strings.Contains(n, "cpu")) || (backend == "vulkan" && strings.Contains(n, "vulkan"))) {
-			return a, nil
+		case "windows":
+			m := windowsRuntimeName.FindStringSubmatch(n)
+			if m != nil && m[3] == arch && ((backend == "cpu" && (m[2] == "cpu-" || m[2] == "")) || (backend == "vulkan" && m[2] == "vulkan-")) {
+				return a, nil
+			}
 		}
 	}
-	return asset{}, fmt.Errorf("no %s %s %s runtime in the release", runtime.GOOS, runtime.GOARCH, backend)
+	return asset{}, fmt.Errorf("no %s %s %s runtime in the release", goos, goarch, backend)
 }
 
 var httpClient = &http.Client{Timeout: 0, CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -150,6 +165,7 @@ func selectRuntimeRelease(releases []release, backend string) (release, error) {
 		return release{}, errors.New("invalid runtime mode")
 	}
 	for _, rel := range releases {
+		if rel.Draft { continue }
 		if _, err := pickAsset(rel.Assets, backend); err == nil {
 			return rel, nil
 		}
@@ -158,28 +174,37 @@ func selectRuntimeRelease(releases []release, backend string) (release, error) {
 }
 
 func getRelease(ctx context.Context, backend string) (release, error) {
-	// The llama.cpp GitHub latest/stable endpoint may not contain platform
-	// binaries. Search the latest published releases for the required asset.
-	var releases []release
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=8", nil)
-	req.Header.Set("User-Agent", "SlothModeConnector/0.15")
-	req.Header.Set("Accept", "application/vnd.github+json")
-	client := &http.Client{Timeout: 25 * time.Second}
-	res, err := client.Do(req)
-	if err != nil {
-		return release{}, err
+	return getReleaseFrom(ctx, backend, &http.Client{Timeout: 25 * time.Second}, "https://api.github.com/repos/ggml-org/llama.cpp/releases")
+}
+
+// Search a bounded history: stable releases can have no binaries, and nightly
+// uploads can be incomplete. Keep the requested backend across every page.
+// Prereleases are intentional: llama.cpp publishes runtime binaries as nightlies.
+func getReleaseFrom(ctx context.Context, backend string, client *http.Client, endpoint string) (release, error) {
+	if backend != "cpu" && backend != "vulkan" {
+		return release{}, errors.New("invalid runtime mode")
 	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return release{}, fmt.Errorf("GitHub releases returned %s", res.Status)
+	for page := 1; page <= 4; page++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s?per_page=8&page=%d", endpoint, page), nil)
+		if err != nil { return release{}, err }
+		req.Header.Set("User-Agent", "SlothModeConnector/0.15")
+		req.Header.Set("Accept", "application/vnd.github+json")
+		res, err := client.Do(req)
+		if err != nil { return release{}, err }
+		if res.StatusCode != http.StatusOK {
+			res.Body.Close()
+			return release{}, fmt.Errorf("GitHub releases returned %s", res.Status)
+		}
+		var releases []release
+		err = json.NewDecoder(io.LimitReader(res.Body, 3<<20)).Decode(&releases)
+		res.Body.Close()
+		if err != nil { return release{}, err }
+		if rel, err := selectRuntimeRelease(releases, backend); err == nil {
+			return rel, nil
+		}
+		if len(releases) < 8 { break }
 	}
-	if err = json.NewDecoder(io.LimitReader(res.Body, 3<<20)).Decode(&releases); err != nil {
-		return release{}, err
-	}
-	if len(releases) == 0 {
-		return release{}, errors.New("no official releases found")
-	}
-	return selectRuntimeRelease(releases, backend)
+	return release{}, fmt.Errorf("no official %s runtime found in recent releases", backend)
 }
 
 func download(ctx context.Context, url, path string, max int64, expectedHash string, status statusFunc) error {
@@ -453,11 +478,14 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 		return nil, fmt.Errorf("failed starting llama.cpp: %w", err)
 	}
 	e := &inferEngine{cmd: cmd, host: "http://127.0.0.1:" + strconv.Itoa(port), client: &http.Client{Timeout: 3 * time.Minute}}
-	if logFile != nil {
-		go func() { _ = cmd.Wait(); _ = logFile.Close() }()
-	} else {
-		go cmd.Wait()
-	}
+	// Always reap the child and retain the exit result. Previously an immediate
+	// llama.cpp crash was silently ignored while the UI waited 95 seconds.
+	processExit := make(chan error, 1)
+	go func() {
+		exitErr := cmd.Wait()
+		if logFile != nil { _ = logFile.Close() }
+		processExit <- exitErr
+	}()
 	status("Loading Gemma into memory (first run may take a while)...")
 	check := &http.Client{Timeout: 1500 * time.Millisecond}
 	deadline := time.Now().Add(95 * time.Second)
@@ -466,6 +494,9 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 		case <-ctx.Done():
 			e.stop()
 			return nil, ctx.Err()
+		case exitErr := <-processExit:
+			if exitErr == nil { return nil, errors.New("llama.cpp exited before reporting ready; see inference.log") }
+			return nil, fmt.Errorf("llama.cpp exited during model loading: %w; see inference.log (try CPU if Vulkan failed)", exitErr)
 		default:
 		}
 		resp, err := check.Get(e.host + "/health")
@@ -476,7 +507,13 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 				return e, nil
 			}
 		}
-		time.Sleep(550 * time.Millisecond)
+		select {
+		case <-ctx.Done(): e.stop(); return nil, ctx.Err()
+		case exitErr := <-processExit:
+			if exitErr == nil { return nil, errors.New("llama.cpp exited before reporting ready; see inference.log") }
+			return nil, fmt.Errorf("llama.cpp exited during model loading: %w; see inference.log", exitErr)
+		case <-time.After(550 * time.Millisecond):
+		}
 	}
 	e.stop()
 	return nil, errors.New("Gemma server didn't become ready. See inference.log; try CPU mode if Vulkan failed")

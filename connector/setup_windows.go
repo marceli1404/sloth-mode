@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -36,6 +37,8 @@ const (
 	idLinkAccount      = 307
 	idOpenAccount      = 308
 	idPasteAccount     = 309
+	wmHardwareResult   = 0x8000 + 47 // Win32 UI thread only
+	wmAccountLinkDone   = 0x8000 + 46 // WM_APP; update native controls only on their owning thread
 )
 
 var (
@@ -47,6 +50,7 @@ var (
 	pSetWindowText     = u32.NewProc("SetWindowTextW")
 	pIsWindow          = u32.NewProc("IsWindow")
 	pFindWindow        = u32.NewProc("FindWindowW")
+	pPostSetup         = u32.NewProc("PostMessageW")
 	pSetWindowPos      = u32.NewProc("SetWindowPos")
 	pGetSystemMetrics  = u32.NewProc("GetSystemMetrics")
 	setupHandle        uintptr
@@ -55,7 +59,16 @@ var (
 	setupTrayLabel     uintptr
 	setupAccountField  uintptr
 	setupAccountStatus uintptr
+	setupHardwareLabel uintptr
+	setupHardwareMu sync.Mutex
+	setupHardwareResult string
+	accountLinkMu      sync.Mutex
+	accountLinkResult  error
+	accountLinkPending bool // accessed only from the Win32 message loop
 )
+
+// Bound account-code input before allocating a UTF-16 buffer from UI length.
+func validAccountLinkInputLength(length uintptr) bool { return length > 0 && length <= 64 }
 
 func setupControl(parent uintptr, typ, content string, x, y, width, height int32, style uint32, id uintptr) uintptr {
 	instance, _, _ := pModule.Call(0)
@@ -130,31 +143,31 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 			pSendMessage.Call(setupAccountField, 0x0302, 0, 0)
 			pSetFocus.Call(setupAccountField)
 		case idLinkAccount:
-			length, _, _ := pSendMessage.Call(setupAccountField, 0x000E, 0, 0)
-			if length == 0 {
-				popup(hwnd, "Account linking", "Paste the 21-character code from your account page first.")
+			if accountLinkPending {
+				break // Prevent double-submit while a network request is running.
+			}
+			length, _, _ := pSendMessage.Call(setupAccountField, 0x000E, 0, 0) // WM_GETTEXTLENGTH
+			if !validAccountLinkInputLength(length) {
+				popup(hwnd, "Account linking", "Paste a valid 21-character code from your account page.")
 				break
 			}
-			buff := make([]uint16, length+1)
+			buff := make([]uint16, length+1) // bounded even for a malicious clipboard payload
 			pGetText := u32.NewProc("GetWindowTextW")
 			pGetText.Call(setupAccountField, uintptr(unsafe.Pointer(&buff[0])), uintptr(len(buff)))
 			code := strings.TrimSpace(syscall.UTF16ToString(buff))
+			accountLinkPending = true
 			pSetWindowText.Call(setupAccountStatus, wint("Linking account…"))
-			go func() {
+			go func(owner uintptr, oneTimeCode string) {
 				name, e := os.Hostname()
-				if e != nil || name == "" {
-					name = "Windows PC"
-				}
-				result := linkAccount(winBridge.base, code, name)
-				if result != nil {
-					logStartup("Account link failed: " + result.Error())
-					pSetWindowText.Call(setupAccountStatus, wint("Link failed. Check the code and retry."))
-					popup(hwnd, "Account linking", result.Error())
-				} else {
-					pSetWindowText.Call(setupAccountStatus, wint("Account linked! You can manage this PC online."))
-					popup(hwnd, "Sloth Mode", "Your computer is linked to your Sloth Mode account. No notes were uploaded.")
-				}
-			}()
+				if e != nil || name == "" { name = "Windows PC" }
+				result := linkAccount(winBridge.base, oneTimeCode, name)
+				accountLinkMu.Lock()
+				accountLinkResult = result
+				accountLinkMu.Unlock()
+				// No SendMessage, SetWindowText or MessageBox from a network goroutine.
+				// If the window was closed, posting simply fails and the main loop exits.
+				pPostSetup.Call(owner, wmAccountLinkDone, 0, 0)
+			}(hwnd, code)
 		case idAutoStart:
 			if startWithWindowsEnabled() {
 				if e := changeStartWithWindows(false); e != nil {
@@ -176,6 +189,29 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 			pDestroy.Call(hwnd) // wmDestroy handles server shutdown via hidden tray window.
 		}
 		return 0
+	case wmHardwareResult:
+		setupHardwareMu.Lock()
+		result := setupHardwareResult
+		setupHardwareMu.Unlock()
+		if setupHardwareLabel != 0 {
+			pSetWindowText.Call(setupHardwareLabel, wint(result))
+		}
+		return 0
+	case wmAccountLinkDone:
+		accountLinkMu.Lock()
+		result := accountLinkResult
+		accountLinkResult = nil
+		accountLinkMu.Unlock()
+		accountLinkPending = false
+		if result != nil {
+			logStartup("Account link failed: " + result.Error())
+			pSetWindowText.Call(setupAccountStatus, wint("Link failed. Check the code and retry."))
+			popup(hwnd, "Account linking", result.Error())
+		} else {
+			pSetWindowText.Call(setupAccountStatus, wint("Account linked! Manage this PC online."))
+			popup(hwnd, "Sloth Mode", "This computer is linked. No notes were uploaded.")
+		}
+		return 0
 	case wmClose:
 		if trayReady {
 			pShowWindow.Call(hwnd, 0)
@@ -185,6 +221,7 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 		return 0
 	case wmDestroy:
 		setupHandle = 0
+		setupHardwareLabel = 0
 		// Exiting the visible setup window deliberately quits only when the tray is absent,
 		// or the user pressed Exit. The hidden tray owner manages server shutdown.
 		if trayData.Hwnd != 0 {
@@ -238,17 +275,21 @@ func createSetupWindow(instance uintptr) bool {
 	setupHeading(hwnd, "STEP 3     Enter your one-time account linking code", 29, 351, 610, 22)
 	setupHeading(hwnd, "Account dashboard: Link a computer > Copy code > Paste below.", 29, 376, 610, 22)
 	setupAccountField = setupControl(hwnd, "EDIT", "", 29, 404, 282, 34, wsTabstop|esAutoHscroll, 0)
+	pSendMessage.Call(setupAccountField, 0x00C5, 64, 0) // EM_LIMITTEXT: never buffer unbounded pasted codes
 	setupControl(hwnd, "BUTTON", "Paste", 319, 404, 65, 34, wsTabstop, idPasteAccount)
 	setupControl(hwnd, "BUTTON", "Link", 392, 404, 103, 34, wsTabstop, idLinkAccount)
 	setupControl(hwnd, "BUTTON", "Account page", 504, 404, 148, 34, wsTabstop, idOpenAccount)
 	setupAccountStatus = setupHeading(hwnd, "Not linked. Local pairing still works.", 29, 443, 620, 22)
 	setupHeading(hwnd, "STEP 4     Optional: install local Gemma", 29, 488, 610, 22)
 	setupHeading(hwnd, "Approve a verified GGUF download from your dashboard; no Ollama needed.", 29, 513, 625, 22)
-	hwLabel := setupHeading(hwnd, "Checking your hardware for the best Gemma size...", 29, 534, 625, 20)
-	go func() {
+	setupHardwareLabel = setupHeading(hwnd, "Checking your hardware for the best Gemma size...", 29, 534, 625, 20)
+	go func(owner uintptr) {
 		p := profileHardware()
-		pSetWindowText.Call(hwLabel, wint("Recommended Gemma "+p.Recommended+" · See your dashboard to change."))
-	}()
+		setupHardwareMu.Lock()
+		setupHardwareResult = "Recommended Gemma " + p.Recommended + " · See dashboard to change."
+		setupHardwareMu.Unlock()
+		pPostSetup.Call(owner, wmHardwareResult, 0, 0)
+	}(hwnd)
 	setupStartupButton = setupControl(hwnd, "BUTTON", "", 29, 556, 400, 28, wsTabstop, idAutoStart)
 	setupControl(hwnd, "BUTTON", "Hide to tray", 368, 603, 136, 37, wsTabstop, idHide)
 	setupControl(hwnd, "BUTTON", "Exit connector", 515, 603, 136, 37, wsTabstop, idCloseApp)
