@@ -12,6 +12,10 @@ From the [dashboard](https://sloth.marceli.dev/dashboard), use **Run Gemma in yo
 
 The browser path is **experimental**. Real GPU inference, browser cache reuse, CORS and runtime asset delivery are not yet validated on production hardware; downloads are checked by exact size but not a streaming SHA-256 digest. See [browser Gemma technical and deployment checklist](docs/BROWSER_AI.md). **Publishing the web files to the live domain is a separate deployment step; merging source does not serve the feature automatically.**
 
+## One integrated workspace
+
+The [dashboard](https://sloth.marceli.dev/dashboard) combines the optional account task list, Quiet Lab, browser-native Gemma, Windows/Linux companion, integrations and interactive demo in one accessible, responsive window. Guest mode works without an account; the connector remains optional and runs locally. The [unified workspace guide](docs/UNIFIED_WORKSPACE.md) explains privacy, deep links and deployment.
+
 ## What works today
 
 - Optional, opt-in browser-native Gemma 4 task planning on capable WebGPU devices (beta).
