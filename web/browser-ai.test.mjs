@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { BROWSER_GEMMA, formatBytes, checkBrowserAI } from "./browser-ai.mjs";
+import { BROWSER_GEMMA, formatBytes, checkBrowserAI, browserAIError } from "./browser-ai.mjs";
 
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 
@@ -46,4 +46,22 @@ test("WebGPU adapter check handles success and refusal", async () => {
   });
   assert.equal((await checkBrowserAI(make({}))).ok, true);
   assert.equal((await checkBrowserAI(make(null))).ok, false);
+});
+
+test("network failure reports download host rather than generic failed fetch", () => {
+ const msg = browserAIError("model-download", new TypeError("Failed to fetch"));
+ assert.match(msg, /Hugging Face/);
+ assert.match(msg, /storage network/);
+ assert.doesNotMatch(msg, /Browser Gemma could not start: Failed to fetch/);
+});
+test("runtime and GPU errors identify the failing stage", () => {
+ assert.match(browserAIError("runtime-import", new TypeError("Failed to fetch")), /cdn\.jsdelivr\.net/);
+ assert.match(browserAIError("gpu-initialization", new Error("Failed to fetch")), /WebGPU\/WASM/);
+ assert.match(browserAIError("model-download", {name:"AbortError"}), /Cancelled/);
+});
+test("model fetch failures and runtime failures are handled separately", () => {
+ const source=readFileSync(new URL("./browser-ai.mjs", import.meta.url),"utf8");
+ assert.match(source, /browserAIError\("model-download", error\)/);
+ assert.match(source, /browserAIError\("runtime-import", error\)/);
+ assert.match(source, /stage = "gpu-initialization"/);
 });

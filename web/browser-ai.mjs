@@ -27,6 +27,26 @@ export async function checkBrowserAI(host = globalThis) {
   return { ok: true, reason: "WebGPU and private browser storage are available. Actual model compatibility is checked on load." };
 }
 
+// Avoid hiding a blocked network request behind the browser's generic "Failed to fetch".
+// No prompts or private notes are sent to a diagnostic service.
+export function browserAIError(stage, error) {
+  if (error?.name === "AbortError") return "Cancelled. You can try again.";
+  const detail = error instanceof Error ? error.message : String(error ?? "Unknown error");
+  if (stage === "model-download") {
+    if (/fetch|network|cors|load failed/i.test(detail)) {
+      return "The Gemma model download could not reach Hugging Face's storage network. Check your connection and any browser privacy blocker, VPN, proxy or firewall. Inspect the Network/Console tab for the blocked storage host. No model was installed.";
+    }
+    return "Gemma model download failed: " + detail;
+  }
+  if (stage === "runtime-import") {
+    return "The LiteRT-LM runtime could not load from cdn.jsdelivr.net. Check browser script blocking, the Content Security Policy and your connection. " + detail;
+  }
+  if (stage === "gpu-initialization") {
+    return "The Gemma model was saved, but LiteRT-LM could not initialise WebGPU/WASM. Check browser GPU support, available graphics memory, runtime asset requests and the Console. " + detail;
+  }
+  return "Browser Gemma could not start: " + detail;
+}
+
 async function modelDirectory() {
   const root = await navigator.storage.getDirectory();
   return root.getDirectoryHandle("sloth-mode-models", { create: true });
@@ -57,9 +77,15 @@ async function ensureStorageHeadroom() {
 
 async function downloadModel(directory, signal, progress) {
   await ensureStorageHeadroom();
-  const response = await fetch(BROWSER_GEMMA.modelURL, {
-    credentials: "omit", cache: "no-store", signal
-  });
+  let response;
+  try {
+    response = await fetch(BROWSER_GEMMA.modelURL, {
+      credentials: "omit", cache: "no-store", signal
+    });
+  } catch (error) {
+    if (signal.aborted) throw new DOMException("Cancelled", "AbortError");
+    throw new Error(browserAIError("model-download", error), { cause: error });
+  }
   if (!response.ok || !response.body) throw new Error("Model download failed (HTTP " + response.status + "). Try again.");
   // The source is pinned to an upstream revision. Check its published byte length
   // to catch incomplete downloads, even when Content-Length is unavailable via CORS.
@@ -111,6 +137,7 @@ function initBrowserAI() {
   const progress = get("sm-browser-progress");
   let engine = null, conversation = null, controller = null;
   let directory = null, working = false, generating = false, available = false;
+  let stage = "model-download";
 
   function message(value, type = "") {
     status.textContent = value;
@@ -164,6 +191,7 @@ function initBrowserAI() {
     if (!available || working || engine) return;
     working = true;
     controller = new AbortController();
+    stage = "model-download";
     updateButtons();
     try {
       directory ||= await modelDirectory();
@@ -179,10 +207,19 @@ function initBrowserAI() {
         start.dataset.cached = "true";
       }
       if (controller.signal.aborted) throw new DOMException("Cancelled", "AbortError");
-      message("Loading Gemma into WebGPU memory. This may take a while…");
+      stage = "runtime-import";
+      message("Loading the LiteRT-LM runtime from jsDelivr…");
       // Deliberately load the remote runtime only after the user's action.
-      const { Engine } = await import(BROWSER_GEMMA.runtimeURL);
+      let Engine;
+      try {
+        ({ Engine } = await import(BROWSER_GEMMA.runtimeURL));
+        if (typeof Engine?.create !== "function") throw new Error("LiteRT-LM did not export Engine.create");
+      } catch (error) {
+        throw new Error(browserAIError("runtime-import", error), { cause: error });
+      }
       if (controller.signal.aborted) throw new DOMException("Cancelled", "AbortError");
+      stage = "gpu-initialization";
+      message("Loading the saved Gemma model into WebGPU memory…");
       const loaded = await Engine.create({ model: file, mainExecutorSettings: { maxNumTokens: 4096 } });
       if (controller.signal.aborted) {
         await loaded.delete();
@@ -196,8 +233,9 @@ function initBrowserAI() {
       message("Gemma is ready on this device. Nothing you type is sent to Sloth Mode servers.", "ready");
       output.textContent = "Ready to make a quiet plan.";
     } catch (error) {
-      message(error?.name === "AbortError" ? "Cancelled. You can try again." :
-        "Browser Gemma could not start: " + (error.message || String(error)), "error");
+      const friendly = (error?.message || "").startsWith("The Gemma model download") || (error?.message || "").startsWith("Gemma model download failed:") || (error?.message || "").startsWith("The LiteRT-LM runtime") || (error?.message || "").startsWith("The Gemma model was saved")
+        ? error.message : browserAIError(stage, error);
+      message(friendly, "error");
       if (engine) { await engine.delete().catch(() => {}); engine = null; conversation = null; }
     } finally {
       working = false;

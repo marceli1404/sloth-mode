@@ -27,7 +27,9 @@ The web-specific LiteRT-LM model build requires WebGPU. Do not silently fall bac
 This change modifies web/index.html and adds web/browser-ai.mjs. Publish both files to the same origin. The /browser-ai.mjs URL must return JavaScript with the correct MIME type rather than an HTML fallback.
 
 - Serve the site over HTTPS.
-- Make sure script-src and WASM-related CSP rules permit the version-pinned jsDelivr runtime and its module/asset loads. Avoid broad CSP relaxations.
+- Make sure `script-src` and WASM-related CSP rules permit the version-pinned jsDelivr runtime and its module/asset loads. Avoid broad CSP relaxations.
+- Keep `connect-src` restricted to the local Sloth endpoints, the pinned runtime CDN and the model distribution hosts. Hugging Face's `/resolve/` endpoint redirects large files to multiple documented HTTPS storage origins, notably `us.aws.cdn.hf.co`, `us.gcp.cdn.hf.co`, `cdn-lfs-us-1.hf.co`, `cdn-lfs-eu-1.hf.co`, `transfer.xethub.hf.co` and `transfer.xethub-eu.hf.co`. Include only the required official origins rather than relaxing to `*`; the list may change.
+- If the page shows "Failed to fetch", first check the stage-specific error text (model download versus jsDelivr runtime versus WebGPU/WASM) and browser Console/Network tab, including the *final redirected hostname*. A JS bundle build passing CI does not establish working browser CORS or connectivity.
 - Confirm that the Hugging Face model fetch completes with suitable CORS headers and that OPFS has enough space.
 - Test Chrome/Edge with WebGPU and enough GPU memory for roughly 2 GB weights plus runtime buffers. WebGPU existence alone does not prove inference works.
 - Test download, cancel, corrupt partial cleanup, subsequent cache reuse, model deletion, stop generation, site storage exhaustion, browser reload and guest users.
