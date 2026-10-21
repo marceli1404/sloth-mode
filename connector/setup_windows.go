@@ -67,6 +67,9 @@ var (
 	accountLinkPending bool // accessed only from the Win32 message loop
 )
 
+// Bound account-code input before allocating a UTF-16 buffer from UI length.
+func validAccountLinkInputLength(length uintptr) bool { return length > 0 && length <= 64 }
+
 func setupControl(parent uintptr, typ, content string, x, y, width, height int32, style uint32, id uintptr) uintptr {
 	instance, _, _ := pModule.Call(0)
 	hwnd, _, _ := pCreate.Call(0, wint(typ), wint(content), uintptr(wsVisible|wsChild|style), uintptr(x), uintptr(y), uintptr(width), uintptr(height), parent, id, instance, 0)
@@ -144,7 +147,7 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 				break // Prevent double-submit while a network request is running.
 			}
 			length, _, _ := pSendMessage.Call(setupAccountField, 0x000E, 0, 0) // WM_GETTEXTLENGTH
-			if length == 0 || length > 64 {
+			if !validAccountLinkInputLength(length) {
 				popup(hwnd, "Account linking", "Paste a valid 21-character code from your account page.")
 				break
 			}
