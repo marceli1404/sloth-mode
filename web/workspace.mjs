@@ -98,7 +98,7 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
  capture?.addEventListener("click",()=>{
   const input=doc.getElementById("ql-pile");
   input?.focus();
-  input?.scrollIntoView?.({block:"center",behavior:win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches?"instant":"smooth"});
+  input?.scrollIntoView?.({block:"center",behavior:win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches?"auto":"smooth"});
  });
  function syncRoute(){const next=resolveWorkspaceTab(win.location.hash,win.location.pathname);if(next!==active)show(next);}
  win.addEventListener("popstate",syncRoute);
