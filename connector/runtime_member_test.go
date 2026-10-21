@@ -28,3 +28,25 @@ func TestNativeRuntimeArchiveNameValidation(t *testing.T) {
   if out,err:=safeRuntimeArchiveName(input);err==nil {t.Errorf("unsafe archive entry accepted: %q -> %q",input,out)}
  }
 }
+
+func TestNativeRuntimePathConstructionRejectsUntrustedSelectors(t *testing.T) {
+ base:=t.TempDir()
+ for _,backend:=range []string{"", "../other", "../../tmp", "cpu/../../notes", "GPU", "vulkan/../cpu"} {
+  if path:=runtimePath(base,backend);path!="" {
+   t.Errorf("invalid backend %q produced native path %q",backend,path)
+  }
+ }
+ for _,quant:=range []string{"", "../models", "Q4_K_M/../notes", "untrusted"} {
+  if path:=modelPathFor(base,quant);path!="" {
+   t.Errorf("invalid quantization %q produced path %q",quant,path)
+  }
+ }
+ for _,backend:=range []string{"cpu","vulkan"} {
+  if path:=runtimePath(base,backend);path=="" {
+   t.Errorf("valid backend %q lost its runtime path",backend)
+  }
+ }
+ if path:=modelPathFor(base,"Q4_K_M");path=="" {
+  t.Fatal("valid model has no path")
+ }
+}
