@@ -53,7 +53,7 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
     for(const id of t.nodes)dest.appendChild(doc.getElementById(id));
   }
   // Keep native model hardware/quantisation settings beside companion pairing, not cloud tasks.
-  const nativeModel=doc.querySelector("#account-task-tracker .sm-model-card");
+  const nativeModel=shell.querySelector("#account-task-tracker .sm-model-card");
   if(nativeModel)shell.querySelector("#sm-pane-items-companion").prepend(nativeModel);
   const today=shell.querySelector("#sm-panel-today .sm-pane-items");
   const quick=doc.createElement("div");
