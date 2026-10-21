@@ -508,6 +508,31 @@ html[data-sloth-page="dashboard"] .sm-dashboard-nav{display:block}
 html[data-sloth-page="dashboard"] .main-nav a[href="/dashboard#demo"]{display:none}
 @media(max-width:720px){.sm-task-section{width:calc(100% - 28px);margin:16px auto}.sm-task-panel{padding:20px;border-radius:18px}.sm-task-head h1{font-size:36px}.sm-task-form>*{width:100%}.sm-task-form button{width:100%}.sm-task-signin a{width:100%}.sm-task-item{padding:10px}.sm-task-delete{padding:8px}html[data-sloth-page="dashboard"] .site-header{height:auto;min-height:80px}}
 @media(prefers-reduced-motion:no-preference){.sm-task-panel{animation:sm-panel-rise .6s both}@keyframes sm-panel-rise{from{transform:translateY(14px);opacity:.5}to{transform:none;opacity:1}}.sm-task-item{animation:sm-row-rise .24s both}@keyframes sm-row-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
+
+/* Browser Gemma is a separately opted-in enhancement, not part of account or connector setup. */
+.sm-browser-ai{width:min(1200px,calc(100% - 44px));margin:28px auto 36px;color:#1d3d30}
+html[data-sloth-page="home"] #sm-browser-ai{display:none!important}
+.sm-browser-panel{background:#fffdf5;border:1px solid #dde6d8;border-radius:25px;padding:clamp(22px,4vw,38px);box-shadow:0 18px 50px #24462c14}
+.sm-browser-top{display:flex;align-items:start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.sm-browser-eyebrow{font:750 11px/1.6 system-ui;letter-spacing:.14em;text-transform:uppercase;color:#68826c}
+.sm-browser-panel h2{font:500 clamp(28px,3.3vw,41px)/1.12 Georgia,serif;letter-spacing:-.035em;color:#183e32;margin:9px 0 14px}
+.sm-browser-description{font-size:14px;line-height:1.7;max-width:76ch;color:#607567}
+.sm-browser-badge{border-radius:99px;padding:9px 13px;background:#d5edc2;color:#245539;font:750 11px/1.4 system-ui}
+.sm-browser-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:20px 0 12px}
+.sm-browser-btn{border:1px solid #a8c5ac;border-radius:11px;padding:12px 17px;background:#eff7eb;color:#1b5134;font:650 13px/1.4 system-ui;cursor:pointer;min-height:44px}
+.sm-browser-btn.primary{background:#1c4b38;color:white;border-color:#1c4b38}
+.sm-browser-btn:disabled{opacity:.5;cursor:not-allowed}
+.sm-browser-device,.sm-browser-status,.sm-browser-caption{font:13px/1.6 system-ui;color:#5d7566;margin:7px 0}
+.sm-browser-status[data-state="error"]{color:#a33e38}
+.sm-browser-status[data-state="ready"]{color:#265e3b}
+#sm-browser-progress{display:block;width:100%;accent-color:#476c4f;height:9px;margin:10px 0}
+#sm-browser-progress[hidden]{display:none}
+.sm-browser-workspace{margin-top:23px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sm-browser-workspace label{font:750 11px/1.5 system-ui;letter-spacing:.09em;color:#59755f}
+.sm-browser-workspace textarea{box-sizing:border-box;width:100%;min-height:190px;resize:vertical;display:block;margin:8px 0 11px;padding:14px;border:1px solid #d6e2d4;border-radius:13px;background:#fff;color:#1e4436;font:14px/1.6 system-ui}
+.sm-browser-output{white-space:pre-wrap;overflow-wrap:anywhere;max-height:370px;overflow:auto;min-height:190px;border:1px solid #d6e2d4;border-radius:13px;background:#f2f7ee;padding:14px;margin:8px 0 0;font:13px/1.7 system-ui;color:#214b38}
+.sm-browser-caption{font-size:12px}
+@media(max-width:720px){.sm-browser-ai{width:calc(100% - 28px);margin:14px auto}.sm-browser-workspace{grid-template-columns:1fr}.sm-browser-panel{padding:20px;border-radius:18px}.sm-browser-actions .sm-browser-btn{flex:1 1 135px}}
 </style>
   
   <script>document.addEventListener('DOMContentLoaded',()=>{
@@ -801,6 +826,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 <div id="sm-task-guest" class="sm-task-signin"><span>Prefer to stay offline? No sign-in needed for the local companion and demo.</span><a href="/auth/start?next=dashboard">Sign in to track tasks →</a></div>
 <div id="sm-task-signed" hidden><form class="sm-task-form" id="sm-task-form"><label for="sm-task-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">New tracked task</label><input id="sm-task-input" maxlength="280" placeholder="Write a task to track…" required autocomplete="off"><button type="submit" class="sm-task-button" id="sm-task-save">Add task</button></form><ul id="sm-task-list" class="sm-task-list" aria-live="polite"></ul><p class="sm-task-privacy">Optional cloud storage: tasks saved here are stored in your Sloth Mode account database. Private connector notes are <strong>never uploaded automatically</strong>.</p></div>
 <p id="sm-account-status" class="sm-task-privacy" aria-live="polite">Checking account status…</p><div class="sm-model-card"><h2>Local Gemma · tuned for your PC</h2><p id="sm-hardware-description">Connect the Windows companion to check your RAM, CPU and graphics hardware. This check stays on your PC.</p><div class="sm-model-tools"><label for="sm-model-quant">Model quality</label><select id="sm-model-quant" disabled><option value="Q3_K_L">Q3_K_L · lighter, lower quality</option><option value="Q4_K_M">Q4_K_M · balanced</option><option value="Q5_K_M">Q5_K_M · higher quality</option><option value="Q6_K">Q6_K · highest quality here</option></select><button id="sm-model-select" class="sm-task-button" disabled>Save preference</button></div><p class="sm-task-privacy">Downloads only after you explicitly approve Local AI setup. Your hardware profile is not sent to your Sloth Mode cloud account.</p></div></div></section>
+<section class="sm-browser-ai" id="sm-browser-ai" aria-labelledby="sm-browser-title">
+ <div class="sm-browser-panel">
+  <div class="sm-browser-top"><div><span class="sm-browser-eyebrow">01 / RUN GEMMA IN YOUR BROWSER · OPTIONAL BETA</span><h2 id="sm-browser-title">A little AI, right here.</h2><p class="sm-browser-description">No installation, account or pairing required. With your permission, this browser downloads Gemma 4 E2B (2.01 GB) and runs it on your GPU using WebGPU. Your notes and prompts are not sent to Sloth Mode servers.</p></div><span class="sm-browser-badge">LOCAL · WEBGPU</span></div>
+  <p class="sm-browser-device" id="sm-browser-device">Checking your browser…</p>
+  <div class="sm-browser-actions"><button class="sm-browser-btn primary" id="sm-browser-start" type="button" disabled>Check compatibility…</button><button class="sm-browser-btn" id="sm-browser-remove" type="button" disabled>Remove downloaded model</button></div>
+  <progress id="sm-browser-progress" max="100" value="0" aria-label="Gemma model download progress" hidden></progress>
+  <p class="sm-browser-status" id="sm-browser-status" role="status" aria-live="polite">Preparing compatibility check…</p>
+  <div class="sm-browser-workspace">
+   <div><label for="sm-browser-input">YOUR NOTES</label><textarea id="sm-browser-input" maxlength="4000" spellcheck="false" placeholder="Send my project update today&#10;Book a bike service&#10;Keep the receipt for later"></textarea><div class="sm-browser-actions"><button class="sm-browser-btn" id="sm-browser-import" type="button">Use Quiet Lab notes</button><button class="sm-browser-btn primary" id="sm-browser-plan" type="button" disabled>✳ Make a quiet plan</button><button class="sm-browser-btn" id="sm-browser-stop" type="button" disabled>Stop</button></div></div>
+   <div><label for="sm-browser-output">GEMMA'S SUGGESTIONS · REVIEW BEFORE ACTING</label><div class="sm-browser-output" id="sm-browser-output" role="status" aria-live="polite">Enable Gemma to get started. The public demo below still uses clearly labelled sample rules.</div></div>
+  </div>
+  <p class="sm-browser-caption">The model stays in this browser's private storage until you remove it or the browser clears site data. The first download and the version-pinned AI runtime require internet access; offline reopening is not guaranteed yet. Browser inference does not monitor applications or replace native system controls.</p>
+ </div>
+</section>
 <section class="connector" id="connector" aria-labelledby="bridge-title">
   <div class="bridge-head"><div><span class="bridge-eyebrow">00 / YOUR COMPUTER, YOUR AI</span><h2 id="bridge-title">Your local brain.<br><em>One beautiful window.</em></h2></div><p>Install the tiny Windows connector, copy your pairing key from its visible setup window, and use this website as your workspace. No cloud model required.</p></div>
   <div class="bridge-shell">
@@ -1157,4 +1196,5 @@ document.addEventListener('DOMContentLoaded',()=>{
  init();window.addEventListener('focus',()=>{if(!document.hidden){init();hardware()}});
 })();
 </script>
+<script type="module" src="/browser-ai.mjs"></script>
 </body></html>
