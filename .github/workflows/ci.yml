@@ -43,3 +43,5 @@ jobs:
         run: node --test web/browser-ai.test.mjs
       - name: Unified workspace layout and routing tests
         run: node --test web/workspace.test.mjs
+      - name: Cross-platform brand identity tests
+        run: node --test web/brand.test.mjs
