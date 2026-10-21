@@ -10,6 +10,23 @@ The Access Worker uses an authenticated `/v1/tasks` GET/POST endpoint for its se
 
 If you publish a public instance, remove any owner-specific policies, enforce rate limits, add an explicit privacy policy and obtain users' consent for cloud task storage. Audit Google/GitHub/email Access identity configuration and user separation on your own deployment. Cloudflare Access rules, secrets and production routing are **not** created by this PR.
 
+
+## Build and verify the account bundle
+
+The Access account Worker is bundled from `cloud/worker.mjs`, `cloud/account.html`,
+`cloud/account.css` and `cloud/account.js`. Before deploying account UI edits, run:
+
+```bash
+node cloud/build-bundle.mjs
+node cloud/build-bundle.mjs --check
+cd cloud && node --test account.test.mjs
+```
+
+The cloud test suite fails if the committed bundle differs from its source files.
+Changing this repository does **not** deploy anything or migrate a production D1
+database. Apply schema changes in staging and test real Cloudflare Access
+auth and task deletion before any production rollout.
+
 ## Open items
 
 - Consolidate the complete first-party cookie/session-handoff Worker from the running production app into this source tree.
