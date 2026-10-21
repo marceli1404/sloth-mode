@@ -57,6 +57,11 @@ func appDataDir() (string, error) {
 	return filepath.Join(home, ".sloth-mode-native"), nil
 }
 func runtimePath(base, backend string) string {
+	// Backend is originally supplied through local API input. Constrain it at
+	// this path-construction boundary too: no string may escape runtime-cpu/vulkan.
+	if backend != "cpu" && backend != "vulkan" {
+		return ""
+	}
 	if runtime.GOOS == "linux" {
 		if location := strings.TrimSpace(os.Getenv("SLOTH_LLAMA_SERVER")); location != "" && filepath.IsAbs(location) {
 			return location
@@ -87,7 +92,14 @@ func modelSpec(q string) ModelSpec {
 	}
 	return ModelSpec{}
 }
-func modelPathFor(base, q string) string { return filepath.Join(base, "models", modelSpec(q).Name) }
+func modelPathFor(base, q string) string {
+	// Never turn an unknown model label into a directory path.
+	spec := modelSpec(q)
+	if spec.Name == "" {
+		return ""
+	}
+	return filepath.Join(base, "models", spec.Name)
+}
 func modelPath(base string) string {
 	return modelPathFor(base, preferredQuant(base, profileHardware()))
 }
