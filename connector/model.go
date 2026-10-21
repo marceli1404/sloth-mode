@@ -142,7 +142,22 @@ var httpClient = &http.Client{Timeout: 0, CheckRedirect: func(req *http.Request,
 	return nil
 }}
 
-func getRelease(ctx context.Context) (release, error) {
+// selectRuntimeRelease returns the newest release that actually contains the
+// requested backend. A CPU-only release must never be used to satisfy an
+// explicitly selected Vulkan installation.
+func selectRuntimeRelease(releases []release, backend string) (release, error) {
+	if backend != "cpu" && backend != "vulkan" {
+		return release{}, errors.New("invalid runtime mode")
+	}
+	for _, rel := range releases {
+		if _, err := pickAsset(rel.Assets, backend); err == nil {
+			return rel, nil
+		}
+	}
+	return release{}, fmt.Errorf("no official %s runtime found in recent releases", backend)
+}
+
+func getRelease(ctx context.Context, backend string) (release, error) {
 	// The llama.cpp GitHub latest/stable endpoint may not contain platform
 	// binaries. Search the latest published releases for the required asset.
 	var releases []release
@@ -164,12 +179,7 @@ func getRelease(ctx context.Context) (release, error) {
 	if len(releases) == 0 {
 		return release{}, errors.New("no official releases found")
 	}
-	for _, rel := range releases {
-		if _, err = pickAsset(rel.Assets, "cpu"); err == nil {
-			return rel, nil
-		}
-	}
-	return release{}, errors.New("no official CPU runtime found in recent releases")
+	return selectRuntimeRelease(releases, backend)
 }
 
 func download(ctx context.Context, url, path string, max int64, expectedHash string, status statusFunc) error {
@@ -358,7 +368,7 @@ func installAI(ctx context.Context, base, backend string, status statusFunc) err
 	}
 	if _, err := os.Stat(runtimePath(base, backend)); err != nil {
 		status("Finding official llama.cpp " + runtime.GOOS + " runtime...")
-		rel, err := getRelease(ctx)
+		rel, err := getRelease(ctx, backend)
 		if err != nil {
 			return fmt.Errorf("can't find llama.cpp release: %w", err)
 		}

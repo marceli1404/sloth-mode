@@ -49,6 +49,41 @@ For Windows, verify the installer and setup window at **100%, 125%, 150% and 200
 - Test layouts at widths 320, 375, 768, 1024, 1440, 1920 and 2560px; repeat at 150% and 200% zoom. Check for clipping, focus visibility, readable controls, keyboard navigation, reduced-motion preference and loading feedback.
 - Verify the published promo video is the approved 1080p/24-fps cut and doesn't claim unsupported cloud features.
 
+## Opt-in real-Gemma smoke test and reproducible timing
+
+The repository includes a **real inference** smoke test deliberately
+**skipped by default**. It requires a previously installed model and
+llama.cpp runtime; it neither downloads files nor reads personal task notes.
+It tests three fabricated notes, source-ID integrity, JSON structure,
+and measures actual startup and generation time.
+
+Linux:
+
+```bash
+cd connector
+SLOTH_REAL_GEMMA_TEST=1 SLOTH_TEST_BACKEND=cpu go test -run '^TestRealGemmaTriageOptIn$' -count=1 -v .
+```
+
+Windows PowerShell:
+
+```powershell
+cd connector
+$env:SLOTH_REAL_GEMMA_TEST = '1'
+$env:SLOTH_TEST_BACKEND = 'cpu'
+go test -run '^TestRealGemmaTriageOptIn$' -count=1 -v .
+```
+
+To test Vulkan, set `SLOTH_TEST_BACKEND=vulkan` on a machine with the
+separately installed native Vulkan runtime. Record OS, CPU/RAM/GPU, quant,
+timings and quality of each task suggestion. Repeat the run after switching
+off network access to verify offline operation.
+
+**These numbers are not evidence of time saved.** For any savings claim,
+separately time a human sorting the same task set, assess output quality,
+and disclose setup/download time exclusions and failed runs. If these
+measurements have not been collected, report **not yet measured**.
+Never substitute the deterministic Quiet Lab preview for real inference.
+
 ## Signed release gate
 
 - [ ] All required Windows/Linux/cloud tests and CodeQL jobs green on the *release commit*.
