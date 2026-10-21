@@ -17,7 +17,7 @@ import (
 
 const bridgePort = "39871"
 const bridgeOrigin = "https://sloth.marceli.dev"
-const bridgeVersion = "0.15.0-linux-beta"
+const bridgeVersion = "0.15.0-beta"
 
 func main() {
 	defer func() {
