@@ -131,7 +131,7 @@ function initBrowserAI() {
     const existing = await cachedModel(directory);
     start.dataset.cached = existing ? "true" : "false";
     remove.disabled = !existing;
-    if (!engine) message(existing
+    if (!engine && status.dataset.state !== "error") message(existing
       ? "Model saved in this browser. Load it to plan locally."
       : "Compatible browser detected. Download Gemma 4 E2B when you are ready.");
     updateButtons();
