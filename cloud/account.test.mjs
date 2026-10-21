@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import * as account from './account-bundle.mjs';
+import { buildBundle } from './build-bundle.mjs';
 import enrol from './enroll.mjs';
 
 class TestDB {
@@ -94,4 +95,8 @@ test('account browser assets show explicit opt-in storage and no automatic sync'
  assert.match(js,/trackedTaskForm/);
  assert.match(js,/textContent=task.text/);
  assert.doesNotMatch(js,/innerHTML\s*=/);
+});
+
+test('committed Cloudflare account Worker bundle matches its source files',()=>{
+ assert.equal(fs.readFileSync(new URL('./account-bundle.mjs',import.meta.url),'utf8'),buildBundle());
 });
