@@ -68,9 +68,9 @@ func extractLinuxRuntime(archive, dest string) error {
 		if h.Typeflag != tar.TypeReg && h.Typeflag != tar.TypeRegA && h.Typeflag != tar.TypeSymlink {
 			return fmt.Errorf("unexpected archive entry type %d", h.Typeflag)
 		}
-		name := filepath.Base(normalized)
-		if name == "" || name == "." || name == ".." {
-			return errors.New("invalid binary name")
+		name, nameErr := safeRuntimeArchiveName(h.Name)
+		if nameErr != nil {
+			return fmt.Errorf("unsafe Linux runtime filename: %w", nameErr)
 		}
 		if names[name] {
 			return errors.New("duplicate runtime filename: " + name)
@@ -78,8 +78,8 @@ func extractLinuxRuntime(archive, dest string) error {
 		names[name] = true
 		path := filepath.Join(tmp, name)
 		if h.Typeflag == tar.TypeSymlink {
-			target := filepath.Base(h.Linkname)
-			if target != h.Linkname || target == "." || target == ".." || strings.ContainsAny(target, "/\\") {
+			target, targetErr := safeRuntimeArchiveName(h.Linkname)
+			if targetErr != nil || target != h.Linkname {
 				return errors.New("unsafe runtime library link")
 			}
 			symlinks = append(symlinks, delayedLink{path, target})

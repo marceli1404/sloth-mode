@@ -103,3 +103,15 @@ func TestRuntimeArchiveExpandedSizeBudget(t *testing.T) {
 		}
 	}
 }
+
+func TestRuntimeZipRejectsPortableReservedNames(t *testing.T) {
+ for _,entry := range []string{"bin/CON", "bin/LPT1.dll", "bin/stream:evil.dll", "bin/lib bad.dll"} {
+  t.Run(entry,func(t *testing.T){
+   dir:=t.TempDir()
+   target:=filepath.Join(dir,"runtime")
+   archive:=makeRuntimeZip(t,[]string{"bin/llama-server.exe",entry})
+   if err:=extractRuntime(archive,target);err==nil {t.Fatal("unsafe archive member accepted")}
+   if _,err:=os.Lstat(target);!os.IsNotExist(err){t.Fatalf("failed unpack created destination: %v",err)}
+  })
+ }
+}
