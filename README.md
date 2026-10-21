@@ -4,10 +4,17 @@
 
 [Website](https://sloth.marceli.dev) · [Try the workspace](https://sloth.marceli.dev/dashboard) · [Issue tracker](https://github.com/marceli1404/sloth-mode/issues)
 
-Sloth Mode uses **Gemma 3 GGUF through `llama.cpp`** for optional local inference. The companion runs in the background on Windows or Linux and pairs explicitly with the web interface through a loopback API. **Ollama and an account are not required.** The public Quiet Lab sample demo uses illustrative deterministic sorting, not actual Gemma inference.
+Sloth Mode supports optional **browser-native Gemma 4 E2B using WebGPU** (experimental; opt-in ~2.01 GB model download), alongside **Gemma 3 GGUF through `llama.cpp`** for native inference. The companion runs in the background on Windows or Linux and pairs explicitly with the web interface through a loopback API. **Ollama and an account are not required.** The public Quiet Lab sample demo uses illustrative deterministic sorting, not actual Gemma inference.
+
+## Browser Gemma beta (account-free)
+
+From the [dashboard](https://sloth.marceli.dev/dashboard), use **Run Gemma in your browser**. A compatible HTTPS/WebGPU browser can explicitly download the ~2.01 GB Gemma 4 E2B model into browser-private storage. Planning is local, and no account, native companion or cloud inference endpoint is needed. The original Windows/Linux companion and opt-in account tasks remain separate.
+
+The browser path is **experimental**. Real GPU inference, browser cache reuse, CORS and runtime asset delivery are not yet validated on production hardware; downloads are checked by exact size but not a streaming SHA-256 digest. See [browser Gemma technical and deployment checklist](docs/BROWSER_AI.md). **Publishing the web files to the live domain is a separate deployment step; merging source does not serve the feature automatically.**
 
 ## What works today
 
+- Optional, opt-in browser-native Gemma 4 task planning on capable WebGPU devices (beta).
 - Local task capture and a paired browser workspace, with notes stored on the user's computer.
 - Optional local Gemma using separately downloaded and checksum-verified GGUF weights and `llama.cpp`.
 - A Windows native connector + installer, and a Linux x86-64/ARM64 background connector with an application launcher.
@@ -35,6 +42,7 @@ The installer is created as `build/SlothMode-Setup.exe`. Run it, then open **Set
 ```bash
 cd connector && go test ./... && go vet ./...
 cd ../cloud && node --test account.test.mjs
+cd .. && node --test web/browser-ai.test.mjs
 ```
 Cloud tests require Node.js 22+ with the built-in `node:sqlite` available.
 
@@ -42,6 +50,7 @@ Cloud tests require Node.js 22+ with the built-in `node:sqlite` available.
 
 | Feature | Guest | Signed in |
 | --- | --- | --- |
+| Browser Gemma (supported WebGPU, explicit download) | ✅ | ✅ |
 | Local connector & notes | ✅ | ✅ |
 | Quiet Lab sample demo | ✅ | ✅ |
 | Local Gemma | ✅ (after model setup) | ✅ |
@@ -56,6 +65,7 @@ The companion listens on **127.0.0.1:39871** and requires explicit browser pairi
 ## Project map
 
 - [`connector/`](connector/) — native Windows + Linux background app, note storage, local model management, pairing.
+- [`web/browser-ai.mjs`](web/browser-ai.mjs) — optional browser WebGPU inference and local model caching.
 - [`installer/`](installer/) — graphical Windows installer/updater source.
 - [`linux/`](linux/) — per-user Linux installer and launcher assets.
 - [`web/`](web/) — static page source (the hosted version is served by Cloudflare Workers).
