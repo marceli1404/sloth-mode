@@ -45,7 +45,7 @@ export const service = {
     if((result.meta?.changes||0)!==1)return json({error:'Account task limit reached (200)'},409);
     return json({ok:true,id},201);
    }
-   if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(input.id||''))
+   if(typeof input.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(input.id))
     return json({error:'Invalid task ID'},400);
    if(input.action==='toggle'){
     if(typeof input.done!=='boolean')return json({error:'Done must be true or false'},400);
