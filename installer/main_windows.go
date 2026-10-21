@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -420,6 +421,10 @@ var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 })
 
 func main() {
+	// A Win32 window and its GetMessage loop must stay on the creating OS thread.
+	// A normal Go goroutine can otherwise migrate to a different OS thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	makeTheme()
 	instance, _, _ := getModule.Call(0)
 	cls := "SlothModeInstallWindow"
