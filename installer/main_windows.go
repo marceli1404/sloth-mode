@@ -509,7 +509,7 @@ func main() {
 		return
 	}
 	hwnd = h
-	ctrl("STATIC", "SLOTH MODE 0.14   /   DESKTOP COMPANION", 42, 30, 480, 26, 0, 0)
+	ctrl("STATIC", "SLOTH MODE "+installerVersion+"   /   DESKTOP COMPANION", 42, 30, 480, 26, 0, 0)
 	ctrl("STATIC", "A quieter way to get things done.", 42, 74, 590, 47, 0, 0)
 	ctrl("STATIC", "Your own Gemma AI, running on this Windows PC.", 42, 130, 555, 26, 0, 0)
 	ctrl("STATIC", "STEP 01   LOCAL-FIRST INSTALL", 42, 219, 625, 23, 0, 0)
