@@ -20,3 +20,26 @@ func TestRejectTarCyclicRuntimeAliases(t *testing.T){
  {name:"lib/b.so",kind:tar.TypeSymlink,link:"a.so"}})
  if err:=extractLinuxRuntime(archive,filepath.Join(t.TempDir(),"runtime"));err==nil||!strings.Contains(err.Error(),"cyclic"){t.Fatalf("TAR symlink cycle accepted: %v",err)}
 }
+
+func TestRejectTarWithReservedPortableNames(t *testing.T){
+ for _,bad := range []string{"bin/CON", "bin/AUX.so", "bin/evil:stream", "bin/name with spaces.so"}{
+  t.Run(bad,func(t *testing.T){
+   archive:=writeTestTar(t,[]struct{name string;kind byte;link string;text string}{
+    {name:"bin/llama-server",kind:tar.TypeReg,text:"good"},
+    {name:bad,kind:tar.TypeReg,text:"bad"},
+   })
+   dest:=filepath.Join(t.TempDir(),"runtime")
+   if err:=extractLinuxRuntime(archive,dest);err==nil {t.Fatal("unsafe member accepted")}
+  })
+ }
+}
+func TestRejectTarWithUnsafeAliasNames(t *testing.T){
+ archive:=writeTestTar(t,[]struct{name string;kind byte;link string;text string}{
+  {name:"bin/llama-server",kind:tar.TypeReg,text:"binary"},
+  {name:"lib/libggml.so",kind:tar.TypeReg,text:"library"},
+  {name:"lib/link.so",kind:tar.TypeSymlink,link:"../libggml.so"},
+ })
+ if err:=extractLinuxRuntime(archive,filepath.Join(t.TempDir(),"runtime"));err==nil {
+  t.Fatal("unsafe library alias accepted")
+ }
+}
