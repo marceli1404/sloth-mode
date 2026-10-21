@@ -38,7 +38,7 @@ export const service = {
    const now=Math.floor(Date.now()/1000);
    if(input.action==='add'){
     const value=typeof input.text==='string'?input.text.trim():'';
-    if(value.length<1||value.length>280||/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/.test(value))
+    if(value.length<1||value.length>280||Array.from(value).some(ch=>ch.codePointAt(0)<32))
      return json({error:'Task must contain 1–280 printable characters'},400);
     const id=crypto.randomUUID();
     const result=await env.DB.prepare('INSERT INTO account_tasks(account_id,task_id,task_text,done,created_at,updated_at) SELECT ?,?,?,0,?,? WHERE (SELECT COUNT(*) FROM account_tasks WHERE account_id=?)<200').bind(account_id,id,value,now,now,account_id).run();
