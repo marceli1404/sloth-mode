@@ -11,7 +11,7 @@ Sloth Mode uses **Gemma 3 GGUF through `llama.cpp`** for optional local inferenc
 - Local task capture and a paired browser workspace, with notes stored on the user's computer.
 - Optional local Gemma using separately downloaded and checksum-verified GGUF weights and `llama.cpp`.
 - A Windows native connector + installer, and a Linux x86-64/ARM64 background connector with an application launcher.
-- Optional account sign-in via separately configured Cloudflare Access (Google, GitHub, email); *only explicitly saved account-tracked tasks* are stored in the account database. Local notes are not silently synced.
+- Optional account sign-in through separately configured Cloudflare Access (Google, GitHub, email). The account page supports an explicit **Save to my account** task list; it stores only tasks you enter there. Local notes and Gemma prompts remain on your computer and are never imported automatically. The public production session implementation is separate from this self-hosting reference.
 - A public demo and source-linked triage interface at `sloth.marceli.dev`.
 
 ## Start from source
@@ -45,9 +45,11 @@ Cloud tests require Node.js 22+ with the built-in `node:sqlite` available.
 | Local connector & notes | ✅ | ✅ |
 | Quiet Lab sample demo | ✅ | ✅ |
 | Local Gemma | ✅ (after model setup) | ✅ |
-| Save tasks in cloud account | — | ✅, opt-in |
+| Explicitly save account tasks (separate list) | — | ✅, opt-in |
 | Manage account-linked devices | — | ✅ |
 | Access your home Gemma remotely | Not implemented | Not implemented |
+
+Account task entries can be read by other browsers signed into the same account. This is separate from local notes; **no task sync or remote Gemma relay is implemented**. The Cloudflare reference requires an explicit D1 schema migration and must be independently validated before deployment.
 
 The companion listens on **127.0.0.1:39871** and requires explicit browser pairing. A signed-in browser account is *not* the same thing as permission to use the local connector. See [SECURITY.md](SECURITY.md).
 
