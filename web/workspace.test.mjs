@@ -25,7 +25,7 @@ test("homepage unaffected, dashboard and integrations load application shell",()
  assert.match(css,/html\.sm-workspace-ready\[data-sloth-page="dashboard"\]/);
 });
 test("semantic app navigation uses links and aria-current, not fake tabs",()=>{
- assert.match(script,/<nav class=\\"sm-window-tabs\\"/);
+ assert.match(script,/<nav class="sm-window-tabs"/);
  assert.match(script,/aria-current/);
  assert.match(script,/history\.pushState/);
  assert.match(script,/addEventListener\("popstate"/);
