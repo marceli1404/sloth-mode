@@ -5,8 +5,10 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	_ "embed"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -347,14 +349,20 @@ func finishDownload() {
 // Poll the real localhost health route; starting a process is not proof it is ready.
 // Work and process waiting are background-only, and UI changes use WM_APP messages.
 func probeLocalCompanion() bool {
-	client := &http.Client{Timeout: 500 * time.Millisecond}
-	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:39871/v1/health", nil)
+	return probeCompanionHealth(&http.Client{Timeout: 500 * time.Millisecond}, "http://127.0.0.1:39871/v1/health")
+}
+// A listening port alone cannot establish that this is our connector.
+func probeCompanionHealth(client *http.Client, url string) bool {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil { return false }
 	req.Header.Set("Origin", "https://sloth.marceli.dev")
 	resp, err := client.Do(req)
 	if err != nil { return false }
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-Type"), "application/json")
+	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Content-Type"), "application/json") { return false }
+	var body struct { OK bool `json:"ok"`; Name string `json:"name"` }
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 2048)).Decode(&body); err != nil { return false }
+	return body.OK && body.Name == "Sloth Mode Connector"
 }
 func launchInstalled() {
 	connection, err := net.DialTimeout("tcp4", "127.0.0.1:39871", 350*time.Millisecond)
