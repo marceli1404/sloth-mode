@@ -33,7 +33,8 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
  const shell=doc.createElement("div");
  shell.id="sm-unified-window";shell.className="sm-unified-window";
  shell.setAttribute("aria-label","Sloth Mode workspace");
- const nav=WORKSPACE_TABS.map(t=>'<a class="sm-window-tab" href="#'+t.id+'" data-sm-route="'+t.id+'"><span class="sm-window-symbol" aria-hidden="true">'+t.symbol+'</span><span class="sm-window-nav-label">'+htmlEsc(t.label)+'</span></a>').join("");
+ const SHORT_NAV=Object.freeze({today:"Today",gemma:"Gemma",companion:"Computer",integrations:"Tools",tour:"Explore"});
+ const nav=WORKSPACE_TABS.map(t=>'<a class="sm-window-tab" href="#'+t.id+'" aria-label="'+htmlEsc(t.label)+'" data-sm-route="'+t.id+'"><span class="sm-window-symbol" aria-hidden="true">'+t.symbol+'</span><span class="sm-window-nav-label">'+htmlEsc(t.label)+'</span><span class="sm-window-nav-mobile" aria-hidden="true">'+SHORT_NAV[t.id]+'</span></a>').join("");
  const panes=WORKSPACE_TABS.map(t=>'<section class="sm-window-pane" id="sm-panel-'+t.id+'" aria-labelledby="sm-heading-'+t.id+'" hidden>'
   +'<div class="sm-pane-intro"><div class="sm-pane-overline"><span class="sm-overline-dot" aria-hidden="true">✳</span> YOUR QUIET SPACE <span class="sm-overline-slash">/</span> '+htmlEsc(t.label.toUpperCase())+'</div>'
   +'<div class="sm-pane-heading"><div><h1 id="sm-heading-'+t.id+'">'+htmlEsc(t.title)+'</h1><p>'+htmlEsc(t.detail)+'</p></div>'
