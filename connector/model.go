@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -107,17 +108,129 @@ type asset struct {
 type release struct {
 	Tag    string  `json:"tag_name"`
 	Assets []asset `json:"assets"`
+	Draft bool `json:"draft"`
 }
 
+// Match complete official archive names, never backend/architecture substrings.
+var windowsRuntimeName = regexp.MustCompile(`^llama-(b[0-9]+|v[0-9]+\.[0-9]+\.[0-9]+)-bin-win-(cpu-|vulkan-)?(x64|arm64)\.zippackage main
+
+import (
+	"archive/zip"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// Gemma GGUF hosted by bartowski on Hugging Face. SHA256 published on the file page.
+const modelName = "google_gemma-3-4b-it-Q4_K_M.gguf"
+const modelHash = "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94"
+const modelURL = "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/49f5fb77a0811e40b74ea24b874afc2115d20d53/google_gemma-3-4b-it-Q4_K_M.gguf"
+const llamaReleaseURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+const maxRuntimeBytes int64 = 400 << 20
+const maxModelBytes int64 = 5 << 30
+
+type statusFunc func(string)
+
+func appDataDir() (string, error) {
+	if runtime.GOOS == "windows" {
+		base := os.Getenv("LOCALAPPDATA")
+		if base == "" {
+			return "", errors.New("LOCALAPPDATA unavailable")
+		}
+		return filepath.Join(base, "SlothModeNative"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	if runtime.GOOS == "linux" {
+		legacy := filepath.Join(home, ".sloth-mode-native")
+		if st, e := os.Stat(legacy); e == nil && st.IsDir() {
+			return legacy, nil
+		}
+		xdg := os.Getenv("XDG_DATA_HOME")
+		if xdg == "" || !filepath.IsAbs(xdg) {
+			xdg = filepath.Join(home, ".local", "share")
+		}
+		return filepath.Join(xdg, "sloth-mode"), nil
+	}
+	return filepath.Join(home, ".sloth-mode-native"), nil
+}
+func runtimePath(base, backend string) string {
+	if runtime.GOOS == "linux" {
+		if location := strings.TrimSpace(os.Getenv("SLOTH_LLAMA_SERVER")); location != "" && filepath.IsAbs(location) {
+			return location
+		}
+		return filepath.Join(base, "runtime-"+backend, "llama-server")
+	}
+	return filepath.Join(base, "runtime-"+backend, "llama-server.exe")
+}
+
+type ModelSpec struct {
+	Name, Hash, URL string
+	Size            int64
+}
+
+var errInvalidQuant = errors.New("unsupported model quantization")
+
+func modelSpec(q string) ModelSpec {
+	const repo = "https://huggingface.co/bartowski/google_gemma-3-4b-it-GGUF/resolve/"
+	switch q {
+	case "Q3_K_L":
+		return ModelSpec{"google_gemma-3-4b-it-Q3_K_L.gguf", "0f77849cca869f0eab10645cd8b74d6f554d8e66dd4ed6a8ecc05f88c41780d3", repo + "main/google_gemma-3-4b-it-Q3_K_L.gguf", 2235949472}
+	case "Q4_K_M":
+		return ModelSpec{modelName, modelHash, modelURL, 2490000000}
+	case "Q5_K_M":
+		return ModelSpec{"google_gemma-3-4b-it-Q5_K_M.gguf", "7b2da98f1f31f3467ca8812122809ff6da3fa3f33bd181b350b9a21996db6cef", repo + "e60bb6e012c751324fc62f604e18a3269ca76c65/google_gemma-3-4b-it-Q5_K_M.gguf", 2830000000}
+	case "Q6_K":
+		return ModelSpec{"google_gemma-3-4b-it-Q6_K.gguf", "ee175bbd0c5ab8b3fdc9b707c98df2d0086d5b22e4d79e4dbeec927385b8c659", repo + "main/google_gemma-3-4b-it-Q6_K.gguf", 3190000000}
+	}
+	return ModelSpec{}
+}
+func modelPathFor(base, q string) string { return filepath.Join(base, "models", modelSpec(q).Name) }
+func modelPath(base string) string {
+	return modelPathFor(base, preferredQuant(base, profileHardware()))
+}
+func detectAI(base, backend string) bool {
+	if _, err := os.Stat(runtimePath(base, backend)); err != nil {
+		return false
+	}
+	fi, err := os.Stat(modelPath(base))
+	return err == nil && fi.Size() > 2_000_000_000
+}
+
+)
+
 func pickAsset(assets []asset, backend string) (asset, error) {
+	return pickAssetForPlatform(assets, backend, runtime.GOOS, runtime.GOARCH)
+}
+
+func pickAssetForPlatform(assets []asset, backend, goos, goarch string) (asset, error) {
+	if backend != "cpu" && backend != "vulkan" {
+		return asset{}, errors.New("invalid runtime mode")
+	}
+	arch := map[string]string{"amd64": "x64", "arm64": "arm64"}[goarch]
+	if arch == "" {
+		return asset{}, fmt.Errorf("unsupported runtime architecture %s", goarch)
+	}
 	for _, a := range assets {
 		n := strings.ToLower(a.Name)
-		if runtime.GOOS == "linux" {
-			arch := "x64"
-			if runtime.GOARCH == "arm64" {
-				arch = "arm64"
-			}
-			// CPU artifact is llama-bNNN-bin-ubuntu-x64.tar.gz (no "cpu" in name).
+		switch goos {
+		case "linux":
 			expected := "bin-ubuntu-" + arch + ".tar.gz"
 			if backend == "vulkan" {
 				expected = "bin-ubuntu-vulkan-" + arch + ".tar.gz"
@@ -125,11 +238,14 @@ func pickAsset(assets []asset, backend string) (asset, error) {
 			if strings.HasSuffix(n, expected) && strings.HasPrefix(n, "llama-") {
 				return a, nil
 			}
-		} else if strings.HasSuffix(n, ".zip") && strings.Contains(n, "bin-win-") && strings.Contains(n, "x64") && ((backend == "cpu" && strings.Contains(n, "cpu")) || (backend == "vulkan" && strings.Contains(n, "vulkan"))) {
-			return a, nil
+		case "windows":
+			m := windowsRuntimeName.FindStringSubmatch(n)
+			if m != nil && m[3] == arch && ((backend == "cpu" && (m[2] == "cpu-" || m[2] == "")) || (backend == "vulkan" && m[2] == "vulkan-")) {
+				return a, nil
+			}
 		}
 	}
-	return asset{}, fmt.Errorf("no %s %s %s runtime in the release", runtime.GOOS, runtime.GOARCH, backend)
+	return asset{}, fmt.Errorf("no %s %s %s runtime in the release", goos, goarch, backend)
 }
 
 var httpClient = &http.Client{Timeout: 0, CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -150,6 +266,7 @@ func selectRuntimeRelease(releases []release, backend string) (release, error) {
 		return release{}, errors.New("invalid runtime mode")
 	}
 	for _, rel := range releases {
+		if rel.Draft { continue }
 		if _, err := pickAsset(rel.Assets, backend); err == nil {
 			return rel, nil
 		}
@@ -158,28 +275,37 @@ func selectRuntimeRelease(releases []release, backend string) (release, error) {
 }
 
 func getRelease(ctx context.Context, backend string) (release, error) {
-	// The llama.cpp GitHub latest/stable endpoint may not contain platform
-	// binaries. Search the latest published releases for the required asset.
-	var releases []release
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=8", nil)
-	req.Header.Set("User-Agent", "SlothModeConnector/0.15")
-	req.Header.Set("Accept", "application/vnd.github+json")
-	client := &http.Client{Timeout: 25 * time.Second}
-	res, err := client.Do(req)
-	if err != nil {
-		return release{}, err
+	return getReleaseFrom(ctx, backend, &http.Client{Timeout: 25 * time.Second}, "https://api.github.com/repos/ggml-org/llama.cpp/releases")
+}
+
+// Search a bounded history: stable releases can have no binaries, and nightly
+// uploads can be incomplete. Keep the requested backend across every page.
+// Prereleases are intentional: llama.cpp publishes runtime binaries as nightlies.
+func getReleaseFrom(ctx context.Context, backend string, client *http.Client, endpoint string) (release, error) {
+	if backend != "cpu" && backend != "vulkan" {
+		return release{}, errors.New("invalid runtime mode")
 	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return release{}, fmt.Errorf("GitHub releases returned %s", res.Status)
+	for page := 1; page <= 4; page++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s?per_page=8&page=%d", endpoint, page), nil)
+		if err != nil { return release{}, err }
+		req.Header.Set("User-Agent", "SlothModeConnector/0.15")
+		req.Header.Set("Accept", "application/vnd.github+json")
+		res, err := client.Do(req)
+		if err != nil { return release{}, err }
+		if res.StatusCode != http.StatusOK {
+			res.Body.Close()
+			return release{}, fmt.Errorf("GitHub releases returned %s", res.Status)
+		}
+		var releases []release
+		err = json.NewDecoder(io.LimitReader(res.Body, 3<<20)).Decode(&releases)
+		res.Body.Close()
+		if err != nil { return release{}, err }
+		if rel, err := selectRuntimeRelease(releases, backend); err == nil {
+			return rel, nil
+		}
+		if len(releases) < 8 { break }
 	}
-	if err = json.NewDecoder(io.LimitReader(res.Body, 3<<20)).Decode(&releases); err != nil {
-		return release{}, err
-	}
-	if len(releases) == 0 {
-		return release{}, errors.New("no official releases found")
-	}
-	return selectRuntimeRelease(releases, backend)
+	return release{}, fmt.Errorf("no official %s runtime found in recent releases", backend)
 }
 
 func download(ctx context.Context, url, path string, max int64, expectedHash string, status statusFunc) error {
