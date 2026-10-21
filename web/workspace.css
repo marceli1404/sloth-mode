@@ -285,3 +285,19 @@ html.sm-workspace-ready[data-sloth-page="dashboard"] body{background:#f4f5f0}
   scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:0s!important;
  }
 }
+
+/* Keep optional account navigation reachable on phones without crowding the bottom nav. */
+@media(max-width:690px){
+ .sm-unified-window .sm-window-sidebar{position:relative}
+ .sm-unified-window .sm-window-sidebar-bottom{
+  display:flex;position:absolute;right:13px;top:11px;bottom:auto;padding:0;margin:0;
+  border:0;min-height:28px;gap:0;
+ }
+ .sm-unified-window .sm-window-sidebar-bottom .sm-window-privacy,
+ .sm-unified-window .sm-window-sidebar-bottom .sm-window-home{display:none}
+ .sm-unified-window .sm-window-sidebar-bottom .sloth-account-nav{
+  display:inline-flex!important;background:#28493d;color:#fff!important;
+  border-color:#537462;min-height:30px;padding:5px 9px;border-radius:8px;
+  font-size:10px;white-space:nowrap;
+ }
+}
