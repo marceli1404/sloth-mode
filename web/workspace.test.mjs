@@ -72,3 +72,29 @@ test("responsive layout, accessible controls and reduced motion",()=>{
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/\.sm-start-here\{display:grid/);
 });
+
+test("mobile navigation remains visible and fully labelled at narrow widths",()=>{
+ assert.match(script,/aria-label="'\+t\.label\+'/);
+ assert.match(script,/sm-nav-label-mobile/);
+ assert.match(css,/\.sm-window-tab\{flex:1 1 0!important/);
+ assert.match(css,/\.sm-nav-label-desktop\{display:none\}/);
+ assert.match(css,/@media\(max-width:360px\)/);
+});
+test("model hardware controls live with computer while DOM handlers remain intact",()=>{
+ assert.match(script,/shell\.querySelector\("#account-task-tracker \.sm-model-card"\)/);
+ assert.match(script,/querySelector\("#sm-pane-items-companion"\)\.prepend\(nativeModel\)/);
+ assert.match(script,/dest\.appendChild\(doc\.getElementById\(id\)\)/);
+ assert.match(css,/#sm-pane-items-companion > \.sm-model-card/);
+});
+test("capture shortcut respects user's reduced-motion preference",()=>{
+ assert.match(script,/prefers-reduced-motion: reduce/);
+ assert.match(script,/reduceMotion\?"auto":"smooth"/);
+});
+
+test("detached-node lookup never searches document before shell mounts",()=>{
+ const move=script.indexOf('dest.appendChild(doc.getElementById(id))');
+ const select=script.indexOf('shell.querySelector("#account-task-tracker .sm-model-card")');
+ const mount=script.indexOf('main.prepend(shell)');
+ assert.ok(move>=0&&select>move&&mount>select,"Look up moved card in the detached shell before mount");
+ assert.doesNotMatch(script,/doc\.querySelector\("#account-task-tracker \.sm-model-card"\)/);
+});

@@ -36,7 +36,8 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
   shell.id="sm-unified-window";
   shell.className="sm-unified-window";
   shell.setAttribute("aria-label","Sloth Mode workspace");
-  const links=WORKSPACE_TABS.map(t=>'<a class="sm-window-tab" href="#'+t.id+'" id="sm-nav-'+t.id+'" data-sm-tab="'+t.id+'"><span class="sm-window-symbol" aria-hidden="true">'+t.symbol+'</span><span>'+t.label+'</span></a>').join("");
+  const mobileLabels={today:"Today",gemma:"Gemma",companion:"Computer",integrations:"Tools",tour:"Explore"};
+  const links=WORKSPACE_TABS.map(t=>'<a class="sm-window-tab" href="#'+t.id+'" id="sm-nav-'+t.id+'" aria-label="'+t.label+'" data-sm-tab="'+t.id+'"><span class="sm-window-symbol" aria-hidden="true">'+t.symbol+'</span><span class="sm-nav-label-desktop">'+t.label+'</span><span class="sm-nav-label-mobile" aria-hidden="true">'+mobileLabels[t.id]+'</span></a>').join("");
   const panes=WORKSPACE_TABS.map(t=>'<section class="sm-window-pane" id="sm-panel-'+t.id+'" aria-labelledby="sm-pane-title-'+t.id+'" hidden><div class="sm-pane-intro"><span class="sm-pane-overline">SLOTH MODE / '+(t.id==="today"?"YOUR DAY":"YOUR WORKSPACE")+'</span><h1 id="sm-pane-title-'+t.id+'" tabindex="-1">'+t.title+'</h1><p>'+t.detail+'</p></div><div class="sm-pane-items" id="sm-pane-items-'+t.id+'"></div></section>').join("");
   shell.innerHTML='<aside class="sm-window-sidebar">'
     +'<a class="sm-window-logo" href="/" aria-label="Sloth Mode homepage"><span class="sm-window-logo-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M8 24C4 17 9 9 17 8c7-1 13 4 12 12-1 7-8 12-15 9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 20c3 3 7 4 10 2" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="14" r="1.8" fill="currentColor"/></svg></span><span>sloth<span class="sm-window-logo-light">mode</span><i>.</i></span></a>'
@@ -51,6 +52,9 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
     const dest=shell.querySelector("#sm-pane-items-"+t.id);
     for(const id of t.nodes)dest.appendChild(doc.getElementById(id));
   }
+  // Keep native model hardware/quantisation settings beside companion pairing, not cloud tasks.
+  const nativeModel=shell.querySelector("#account-task-tracker .sm-model-card");
+  if(nativeModel)shell.querySelector("#sm-pane-items-companion").prepend(nativeModel);
   const today=shell.querySelector("#sm-panel-today .sm-pane-items");
   const quick=doc.createElement("div");
   quick.className="sm-start-here";
@@ -63,7 +67,8 @@ export function initWorkspace(doc=typeof document==="undefined"?null:document,wi
     event.preventDefault();
     const pile=doc.getElementById("ql-pile");
     pile?.focus();
-    pile?.scrollIntoView?.({behavior:"smooth",block:"center"});
+    const reduceMotion=!!win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    pile?.scrollIntoView?.({behavior:reduceMotion?"auto":"smooth",block:"center"});
   });
   const accountNav=doc.querySelector(".sloth-account-nav");
   if(accountNav)shell.querySelector("#sm-window-account").appendChild(accountNav);
