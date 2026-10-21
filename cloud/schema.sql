@@ -1,4 +1,5 @@
--- Sloth Mode 0.11 account metadata. NEVER stores task text or Gemma prompts.
+-- Sloth Mode account/device metadata and *explicitly opted-in* cloud task tracking.
+-- Private local notes, prompts and model output are NEVER stored in these tables.
 CREATE TABLE IF NOT EXISTS device_links (
  account_id TEXT NOT NULL,
  device_id TEXT NOT NULL,
@@ -18,3 +19,16 @@ CREATE TABLE IF NOT EXISTS enrollment_codes (
  issued_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sloth_enroll_account ON enrollment_codes(account_id,expires_at);
+
+-- Cloud tasks are added only from the authenticated account page.
+-- Account IDs are server-derived; browsers cannot pick another account ID.
+CREATE TABLE IF NOT EXISTS account_tasks (
+ account_id TEXT NOT NULL,
+ task_id TEXT NOT NULL,
+ task_text TEXT NOT NULL CHECK(length(task_text) BETWEEN 1 AND 280),
+ done INTEGER NOT NULL DEFAULT 0 CHECK(done IN (0,1)),
+ created_at INTEGER NOT NULL,
+ updated_at INTEGER NOT NULL,
+ PRIMARY KEY(account_id,task_id)
+);
+CREATE INDEX IF NOT EXISTS idx_sloth_tasks_account ON account_tasks(account_id,created_at DESC);

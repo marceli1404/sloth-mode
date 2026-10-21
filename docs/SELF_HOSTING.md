@@ -2,15 +2,34 @@
 
 The connector can be run locally without the cloud account service. The website is a mostly static page with optional authenticated endpoints.
 
-The `cloud/` directory contains a tested Cloudflare Access account/device registry implementation, a device-enrolment service, a D1 schema, and the task API example. **These are reference components, not a complete, production-ready deployment scaffold.** The current live site has additional session handoff logic, deployment configuration, and pages not yet consolidated into this repository.
+The `cloud/` directory contains a tested Cloudflare Access account/device registry implementation, a device-enrolment service, a D1 schema, and an **explicit opt-in account task endpoint** implemented in the Access Worker, plus a separate legacy session-auth task API example. **These are reference components, not a complete, production-ready deployment scaffold.** The current live site has additional session handoff logic, deployment configuration, and pages not yet consolidated into this repository.
 
-For a self-hosted environment: provision a separate Cloudflare account/zone; configure Access with *your own* Google/GitHub OAuth apps and allow policies; create a new D1 database; run the schema migration; bind it to your account and enrolment Workers; configure domain/origin allowlists; and verify all authentication and CORS checks. Do not publish OAuth client secrets or reuse the project's production database IDs.
+For a self-hosted environment: provision a separate Cloudflare account/zone; configure Access with *your own* Google/GitHub OAuth apps and allow policies; create a new D1 database; apply the revised `cloud/schema.sql` migration to a fresh staging D1 (or review and apply the new `account_tasks` table on an existing DB); bind the same DB to your account and enrolment Workers; configure domain/origin allowlists; and verify all authentication and CORS checks. Do not publish OAuth client secrets or reuse the project's production database IDs.
 
-If you publish a public instance, remove any owner-specific policies, enforce rate limits, add an explicit privacy policy and obtain users' consent for any cloud task storage.
+The Access Worker uses an authenticated `/v1/tasks` GET/POST endpoint for its separate task list. Every write requires the exact account origin and a JSON body; server-derived account IDs scope all task reads/updates/deletes. Task text is capped at 280 characters and 200 entries per account. The UI does **not** read or sync local connector notes. The old `task-api.example.mjs` illustrates a *different*, browser-cookie session architecture and is not directly interoperable with Access-worker sessions.
+
+If you publish a public instance, remove any owner-specific policies, enforce rate limits, add an explicit privacy policy and obtain users' consent for cloud task storage. Audit Google/GitHub/email Access identity configuration and user separation on your own deployment. Cloudflare Access rules, secrets and production routing are **not** created by this PR.
+
+
+## Build and verify the account bundle
+
+The Access account Worker is bundled from `cloud/worker.mjs`, `cloud/account.html`,
+`cloud/account.css` and `cloud/account.js`. Before deploying account UI edits, run:
+
+```bash
+node cloud/build-bundle.mjs
+node cloud/build-bundle.mjs --check
+cd cloud && node --test account.test.mjs
+```
+
+The cloud test suite fails if the committed bundle differs from its source files.
+Changing this repository does **not** deploy anything or migrate a production D1
+database. Apply schema changes in staging and test real Cloudflare Access
+auth and task deletion before any production rollout.
 
 ## Open items
 
 - Consolidate the complete first-party cookie/session-handoff Worker from the running production app into this source tree.
 - Provide infrastructure-as-code for staging and production worker deployments.
-- Add tests for the browser-authenticated cloud task API in a real deployment.
+- Verify Access identity, account task persistence, write-origin checks and multi-user separation against actual staging D1 and browsers. Local unit tests are not a production OAuth test.
 - Release reproducible, signed Linux/Windows archives and verify real inference on target hardware.

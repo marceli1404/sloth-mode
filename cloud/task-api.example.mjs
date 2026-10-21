@@ -1,4 +1,4 @@
-// First-party optional task tracker. Uses the existing hashed Sloth Mode account session.
+// Legacy **example** for a distinct first-party browser-cookie session service.\n// The Access-backed account dashboard uses /v1/tasks in cloud/worker.mjs.\n// Do not deploy this example without supplying and auditing authCookie/authHash\n// and the separate browser_sessions schema; it is not wired into the Access Worker.\n// First-party optional task tracker. Uses the existing hashed Sloth Mode account session.
 async function trackedTaskRoute(req,env) {
  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
  const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers});

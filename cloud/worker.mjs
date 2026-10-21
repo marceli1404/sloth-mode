@@ -1,6 +1,7 @@
 // Sloth Mode Account Worker. Protect account.sloth.marceli.dev with Cloudflare Access.
 // Other origins and anonymous callers cannot read/write account resources.
-// This worker does not accept or store notes, prompts, or model output.
+// The local note store, model prompts, and inference are never transferred.
+// Only tasks explicitly saved in this signed-in account UI are stored in D1.
 const APP_ORIGIN = 'https://account.sloth.marceli.dev';
 const TTL_SECONDS = 600;
 const safeHeaders = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
@@ -21,8 +22,44 @@ export const service = {
   if(request.method==='GET'&&path==='/')return new Response(PAGE,{headers:{...safeHeaders,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"}});
   if(request.method==='GET'&&path==='/app.js')return new Response(APP_JS,{headers:{...safeHeaders,'Content-Type':'application/javascript; charset=utf-8'}});
   if(request.method==='GET'&&path==='/app.css')return new Response(APP_CSS,{headers:{...safeHeaders,'Content-Type':'text/css; charset=utf-8'}});
-  if(request.method==='GET'&&path==='/v1/me')return json({email,provider:identity.idp?.type||identity.idp||'Cloudflare Access',remote_sync:false,remote_inference:false});
+  if(request.method==='GET'&&path==='/v1/me')return json({email,provider:identity.idp?.type||identity.idp||'Cloudflare Access',remote_sync:false,remote_inference:false,account_tasks:'opt_in'});
   if(!env.DB)return json({error:'Device registry unavailable'},503);
+  // Cloud-tracked tasks are separate from local notes. There is no automatic
+  // import, read of localhost, model inference, or background synchronization.
+  if(path==='/v1/tasks'){
+   if(request.method==='GET'){
+    const result=await env.DB.prepare('SELECT task_id AS id,task_text AS text,done,created_at,updated_at FROM account_tasks WHERE account_id=? ORDER BY created_at DESC,task_id DESC LIMIT 200').bind(account_id).all();
+    return json({tasks:(result.results||[]).map(t=>({...t,done:!!t.done}))});
+   }
+   if(request.method!=='POST')return json({error:'Unsupported method'},405);
+   if(!requireWriteOrigin(request))return json({error:'Same-origin JSON request required'},403);
+   let input;try{input=await parseBody(request)}catch{return json({error:'Invalid JSON or request too large'},400)}
+   if(!input||typeof input!=='object'||Array.isArray(input))return json({error:'Invalid task request'},400);
+   const now=Math.floor(Date.now()/1000);
+   if(input.action==='add'){
+    const value=typeof input.text==='string'?input.text.trim():'';
+    if(value.length<1||value.length>280||Array.from(value).some(ch=>ch.codePointAt(0)<32))
+     return json({error:'Task must contain 1–280 printable characters'},400);
+    const id=crypto.randomUUID();
+    const result=await env.DB.prepare('INSERT INTO account_tasks(account_id,task_id,task_text,done,created_at,updated_at) SELECT ?,?,?,0,?,? WHERE (SELECT COUNT(*) FROM account_tasks WHERE account_id=?)<200').bind(account_id,id,value,now,now,account_id).run();
+    if((result.meta?.changes||0)!==1)return json({error:'Account task limit reached (200)'},409);
+    return json({ok:true,id},201);
+   }
+   if(typeof input.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(input.id))
+    return json({error:'Invalid task ID'},400);
+   if(input.action==='toggle'){
+    if(typeof input.done!=='boolean')return json({error:'Done must be true or false'},400);
+    const result=await env.DB.prepare('UPDATE account_tasks SET done=?,updated_at=? WHERE account_id=? AND task_id=?').bind(input.done?1:0,now,account_id,input.id).run();
+    if((result.meta?.changes||0)!==1)return json({error:'Task not found'},404);
+    return json({ok:true});
+   }
+   if(input.action==='delete'){
+    const result=await env.DB.prepare('DELETE FROM account_tasks WHERE account_id=? AND task_id=?').bind(account_id,input.id).run();
+    if((result.meta?.changes||0)!==1)return json({error:'Task not found'},404);
+    return json({ok:true});
+   }
+   return json({error:'Unsupported task action'},400);
+  }
   if(request.method==='GET'&&path==='/v1/devices'){
    const x=await env.DB.prepare('SELECT device_id,label,created_at,last_seen_at,revoked_at FROM device_links WHERE account_id=? ORDER BY created_at DESC LIMIT 50').bind(account_id).all();return json({devices:x.results||[]});
   }
