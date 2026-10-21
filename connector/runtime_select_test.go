@@ -1,12 +1,13 @@
 package main
 
 import (
-	"runtime"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -79,9 +80,9 @@ func TestRuntimeReleasePagination(t *testing.T) {
 	cpu, vulkan := assetNamesForPlatform()
 	for _, backend := range []string{"cpu", "vulkan"} {
 		t.Run(backend, func(t *testing.T) {
-			requests := 0
+			var requests atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				requests++
+				requests.Add(1)
 				if r.URL.Query().Get("per_page") != "8" { t.Error("missing page bound") }
 				switch r.URL.Query().Get("page") {
 				case "1":
@@ -102,7 +103,7 @@ func TestRuntimeReleasePagination(t *testing.T) {
 			}))
 			defer server.Close()
 			rel, err := getReleaseFrom(context.Background(), backend, server.Client(), server.URL)
-			if err != nil || rel.Tag != "usable" || requests != 2 { t.Fatalf("got %q after %d requests: %v", rel.Tag, requests, err) }
+			if err != nil || rel.Tag != "usable" || requests.Load() != 2 { t.Fatalf("got %q after %d requests: %v", rel.Tag, requests.Load(), err) }
 		})
 	}
 }
@@ -110,9 +111,9 @@ func TestRuntimeReleasePagination(t *testing.T) {
 func TestRuntimeReleaseSearchFailsClosed(t *testing.T) {
 	for _, mode := range []string{"empty", "full", "status", "json"} {
 		t.Run(mode, func(t *testing.T) {
-			requests := 0
+			var requests atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				requests++
+				requests.Add(1)
 				switch mode {
 				case "empty": json.NewEncoder(w).Encode([]release{})
 				case "full": json.NewEncoder(w).Encode(make([]release, 8))
@@ -122,10 +123,10 @@ func TestRuntimeReleaseSearchFailsClosed(t *testing.T) {
 			}))
 			defer server.Close()
 			if _, err := getReleaseFrom(context.Background(), "cpu", server.Client(), server.URL); err == nil { t.Fatal("unavailable release accepted") }
-			want := 1
+			want := int32(1)
 			if mode == "full" { want = 4 }
-			if requests != want { t.Fatalf("requests=%d, want %d", requests, want) }
-			if _, err := getReleaseFrom(context.Background(), "../cpu", server.Client(), server.URL); err == nil || requests != want { t.Fatal("invalid backend made request") }
+			if requests.Load() != want { t.Fatalf("requests=%d, want %d", requests.Load(), want) }
+			if _, err := getReleaseFrom(context.Background(), "../cpu", server.Client(), server.URL); err == nil || requests.Load() != want { t.Fatal("invalid backend made request") }
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			if _, err := getReleaseFrom(ctx, "cpu", server.Client(), server.URL); err == nil { t.Fatal("cancellation ignored") }
