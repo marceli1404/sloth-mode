@@ -49,6 +49,108 @@ For Windows, verify the installer and setup window at **100%, 125%, 150% and 200
 - Test layouts at widths 320, 375, 768, 1024, 1440, 1920 and 2560px; repeat at 150% and 200% zoom. Check for clipping, focus visibility, readable controls, keyboard navigation, reduced-motion preference and loading feedback.
 - Verify the published promo video is the approved 1080p/24-fps cut and doesn't claim unsupported cloud features.
 
+## Opt-in real-Gemma smoke test and reproducible timing
+
+The repository now includes a **real inference** smoke test that is deliberately
+**skipped in CI by default**. It requires an already installed, verified Gemma
+GGUF and llama.cpp runtime; it does not download files, create an account,
+or read personal task notes. It sends three fabricated notes and checks the
+returned task IDs, structured fields, and response validity.
+
+Linux:
+
+```bash
+cd connector
+SLOTH_REAL_GEMMA_TEST=1 SLOTH_TEST_BACKEND=cpu go test -run '^TestRealGemmaTriageOptIn
+
+- [ ] All required Windows/Linux/cloud tests and CodeQL jobs green on the *release commit*.
+- [ ] No untriaged high-severity code-scanning findings or known exploitable vulnerabilities.
+- [ ] Independent reviewer checks runtime extraction, update verification, OAuth account boundaries and loopback pairing.
+- [ ] Real platform tests above documented with verifiable redacted evidence.
+- [ ] Fresh Windows/Linux deliverables built from the identified commit, accompanied by SHA-256 checksums.
+- [ ] Release archive contents and source/provenance match; no secrets, customer data or private signing keys included.
+- [ ] Offline signing key kept out of CI; signed updater manifest points to this release and verifies the exact file size/hash.
+- [ ] Versioned release notes state remaining limitations clearly, including optional sign-in and guest privacy.
+
+## Test report format
+
+Copy this into a GitHub issue comment or the release checklist issue:
+
+```text
+Commit / artifact SHA-256:
+Tester (handle only):
+OS / version / architecture:
+CPU / RAM / GPU / driver (omit identifiers):
+Display scaling / browser / zoom:
+Guest pairing: PASS / FAIL / NOT TESTED
+Local data preserved: PASS / FAIL / NOT TESTED
+Model variant and verified hash:
+Real inference (online then offline): PASS / FAIL / NOT TESTED
+Account/device tests: PASS / FAIL / NOT TESTED
+UI clipping/accessibility: PASS / FAIL / NOT TESTED
+Logs/screenshots (redacted):
+Problems + reproduction steps:
+```
+
+A failed or untested step is a release blocker only when it materially affects a claimed supported feature. Never manufacture evidence or close a security finding based on a CI green check alone.
+ -count=1 -v .
+```
+
+Windows PowerShell:
+
+```powershell
+cd connector
+$env:SLOTH_REAL_GEMMA_TEST = '1'
+$env:SLOTH_TEST_BACKEND = 'cpu'
+go test -run '^TestRealGemmaTriageOptIn
+
+- [ ] All required Windows/Linux/cloud tests and CodeQL jobs green on the *release commit*.
+- [ ] No untriaged high-severity code-scanning findings or known exploitable vulnerabilities.
+- [ ] Independent reviewer checks runtime extraction, update verification, OAuth account boundaries and loopback pairing.
+- [ ] Real platform tests above documented with verifiable redacted evidence.
+- [ ] Fresh Windows/Linux deliverables built from the identified commit, accompanied by SHA-256 checksums.
+- [ ] Release archive contents and source/provenance match; no secrets, customer data or private signing keys included.
+- [ ] Offline signing key kept out of CI; signed updater manifest points to this release and verifies the exact file size/hash.
+- [ ] Versioned release notes state remaining limitations clearly, including optional sign-in and guest privacy.
+
+## Test report format
+
+Copy this into a GitHub issue comment or the release checklist issue:
+
+```text
+Commit / artifact SHA-256:
+Tester (handle only):
+OS / version / architecture:
+CPU / RAM / GPU / driver (omit identifiers):
+Display scaling / browser / zoom:
+Guest pairing: PASS / FAIL / NOT TESTED
+Local data preserved: PASS / FAIL / NOT TESTED
+Model variant and verified hash:
+Real inference (online then offline): PASS / FAIL / NOT TESTED
+Account/device tests: PASS / FAIL / NOT TESTED
+UI clipping/accessibility: PASS / FAIL / NOT TESTED
+Logs/screenshots (redacted):
+Problems + reproduction steps:
+```
+
+A failed or untested step is a release blocker only when it materially affects a claimed supported feature. Never manufacture evidence or close a security finding based on a CI green check alone.
+ -count=1 -v .
+```
+
+Set `SLOTH_TEST_BACKEND=vulkan` to test the separately installed Vulkan
+runtime. Record the printed cold-start and triage durations, tested quant,
+OS, CPU, RAM, GPU/driver, and whether every synthetic task received a
+plausible category/priority/next action. Repeat **after turning off network**
+to confirm offline operation; local loopback should still work.
+
+These durations measure **model execution**, not human time saved. To make a
+time-savings claim in the DEV submission, separately stopwatch a human
+performing the *same* task-set categorisation and compare the results.
+Disclose sample size, setup/download time exclusions, and failure cases.
+If a real run has not been completed, leave timings and savings as
+**not yet measured**. Never use the Quiet Lab deterministic demo as
+evidence of real Gemma execution.
+
 ## Signed release gate
 
 - [ ] All required Windows/Linux/cloud tests and CodeQL jobs green on the *release commit*.
