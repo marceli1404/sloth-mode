@@ -1,6 +1,6 @@
 # DRAFT — Hacktoberfest 2026, Week 3: Slow and Steady
 
-**Private review draft in the public source repository. This file is NOT a submission.**
+**Review draft on a public GitHub branch. This file is NOT a published DEV submission.**
 Do not publish until the verification boxes at the end are complete. The website's
 Quiet Lab sample is deterministic, **not a real Gemma run**.
 
