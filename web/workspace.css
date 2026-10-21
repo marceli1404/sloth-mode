@@ -185,3 +185,24 @@ html.sm-workspace-ready[data-sloth-page="dashboard"] .sm-window-pane section[hid
 }
 @media(max-width:360px){.sm-window-tabs{justify-content:flex-start}.sm-window-tab{flex-basis:65px}.sm-start-side{grid-template-columns:1fr}.sm-mini-action{min-height:70px}}
 @media(prefers-reduced-motion:reduce){.sm-mini-action,.sm-start-action{transition:none!important;transform:none!important}}
+
+
+/* Follow-up: never clip one of the five destinations on a narrow phone. */
+@media(min-width:691px){.sm-nav-label-mobile{display:none}}
+@media(max-width:690px){
+  .sm-window-tab{flex:1 1 0!important;min-width:0;white-space:normal!important;overflow-wrap:normal;min-height:60px}
+  .sm-nav-label-desktop{display:none}
+  .sm-nav-label-mobile{display:block;line-height:1.15;font-size:10px;letter-spacing:-.015em}
+  .sm-window-tabs{justify-content:stretch;overflow:visible}
+}
+@media(max-width:360px){.sm-window-tab{flex-basis:0!important;min-width:0!important}}
+/* This is a desktop-companion preference, not part of the cloud task list. */
+html.sm-workspace-ready[data-sloth-page="dashboard"] #sm-pane-items-companion > .sm-model-card{
+ width:100%;max-width:none;margin:0 0 16px!important;border:1px solid #dce7da;
+ border-radius:17px;background:#fffefa;padding:clamp(19px,3vw,30px);
+ box-shadow:0 4px 20px #173d2710;
+}
+html.sm-workspace-ready[data-sloth-page="dashboard"] #sm-pane-items-companion > .sm-model-card h2{
+ font:400 clamp(24px,3vw,32px)/1.13 Georgia,serif;letter-spacing:-.025em;color:#193d30;
+}
+@media(prefers-reduced-motion:reduce){html.sm-workspace-ready[data-sloth-page="dashboard"]{scroll-behavior:auto}}
