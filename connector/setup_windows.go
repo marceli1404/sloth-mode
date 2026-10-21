@@ -37,6 +37,7 @@ const (
 	idLinkAccount      = 307
 	idOpenAccount      = 308
 	idPasteAccount     = 309
+	wmHardwareResult   = 0x8000 + 47 // Win32 UI thread only
 	wmAccountLinkDone   = 0x8000 + 46 // WM_APP; update native controls only on their owning thread
 )
 
@@ -58,6 +59,9 @@ var (
 	setupTrayLabel     uintptr
 	setupAccountField  uintptr
 	setupAccountStatus uintptr
+	setupHardwareLabel uintptr
+	setupHardwareMu sync.Mutex
+	setupHardwareResult string
 	accountLinkMu      sync.Mutex
 	accountLinkResult  error
 	accountLinkPending bool // accessed only from the Win32 message loop
@@ -182,6 +186,14 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 			pDestroy.Call(hwnd) // wmDestroy handles server shutdown via hidden tray window.
 		}
 		return 0
+	case wmHardwareResult:
+		setupHardwareMu.Lock()
+		result := setupHardwareResult
+		setupHardwareMu.Unlock()
+		if setupHardwareLabel != 0 {
+			pSetWindowText.Call(setupHardwareLabel, wint(result))
+		}
+		return 0
 	case wmAccountLinkDone:
 		accountLinkMu.Lock()
 		result := accountLinkResult
@@ -206,6 +218,7 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 		return 0
 	case wmDestroy:
 		setupHandle = 0
+		setupHardwareLabel = 0
 		// Exiting the visible setup window deliberately quits only when the tray is absent,
 		// or the user pressed Exit. The hidden tray owner manages server shutdown.
 		if trayData.Hwnd != 0 {
@@ -266,11 +279,14 @@ func createSetupWindow(instance uintptr) bool {
 	setupAccountStatus = setupHeading(hwnd, "Not linked. Local pairing still works.", 29, 443, 620, 22)
 	setupHeading(hwnd, "STEP 4     Optional: install local Gemma", 29, 488, 610, 22)
 	setupHeading(hwnd, "Approve a verified GGUF download from your dashboard; no Ollama needed.", 29, 513, 625, 22)
-	hwLabel := setupHeading(hwnd, "Checking your hardware for the best Gemma size...", 29, 534, 625, 20)
-	go func() {
+	setupHardwareLabel = setupHeading(hwnd, "Checking your hardware for the best Gemma size...", 29, 534, 625, 20)
+	go func(owner uintptr) {
 		p := profileHardware()
-		pSetWindowText.Call(hwLabel, wint("Recommended Gemma "+p.Recommended+" · See your dashboard to change."))
-	}()
+		setupHardwareMu.Lock()
+		setupHardwareResult = "Recommended Gemma " + p.Recommended + " · See dashboard to change."
+		setupHardwareMu.Unlock()
+		pPostSetup.Call(owner, wmHardwareResult, 0, 0)
+	}(hwnd)
 	setupStartupButton = setupControl(hwnd, "BUTTON", "", 29, 556, 400, 28, wsTabstop, idAutoStart)
 	setupControl(hwnd, "BUTTON", "Hide to tray", 368, 603, 136, 37, wsTabstop, idHide)
 	setupControl(hwnd, "BUTTON", "Exit connector", 515, 603, 136, 37, wsTabstop, idCloseApp)
