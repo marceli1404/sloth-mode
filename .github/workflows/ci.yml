@@ -39,3 +39,5 @@ jobs:
           node-version: '24'
       - name: Account service tests
         run: cd cloud && node --test account.test.mjs
+      - name: Browser Gemma compatibility and UI tests
+        run: node --test web/browser-ai.test.mjs
