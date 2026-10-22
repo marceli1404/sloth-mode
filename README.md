@@ -4,7 +4,9 @@
 
 **Release status: public web beta, unsigned Windows preview, experimental Linux build. Not yet a signed stable release.** See the [public beta guide](docs/PUBLIC_BETA_LAUNCH.md) for test evidence, download instructions, security limitations and release gates.
 
-[Website](https://sloth.marceli.dev) · [Try the workspace](https://sloth.marceli.dev/dashboard) · [Issue tracker](https://github.com/marceli1404/sloth-mode/issues)
+[**Try the public beta**](https://sloth.marceli.dev/dashboard) · [**Windows unsigned preview**](https://github.com/marceli1404/sloth-mode/actions/runs/39694111337) · [**Send beta feedback**](https://github.com/marceli1404/sloth-mode/issues/30) · [Beta limitations](docs/PUBLIC_BETA_LAUNCH.md)
+
+The web beta is open without an account. The downloadable Windows build is **unsigned and experimental**, requires a GitHub artifact download (GitHub login may be required), and has unresolved native security review gates. Don't disable security protections to run it. If you test it, please report bugs with fictional sample tasks and no credentials.
 
 Sloth Mode supports optional **browser-native Gemma 4 E2B using WebGPU** (experimental; opt-in ~2.01 GB model download), alongside **Gemma 3 GGUF through `llama.cpp`** for native inference. The companion runs in the background on Windows or Linux and pairs explicitly with the web interface through a loopback API. **Ollama and an account are not required.** The public Quiet Lab sample demo uses illustrative deterministic sorting, not actual Gemma inference.
 
