@@ -64,3 +64,5 @@ jobs:
         run: node --test web/workspace.test.mjs
       - name: Cross-platform brand identity tests
         run: node --test web/brand.test.mjs
+      - name: Public beta access and feedback tests
+        run: node --test web/beta-launch.test.mjs
