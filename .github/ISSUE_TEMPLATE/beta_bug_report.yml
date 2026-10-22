@@ -1,0 +1,50 @@
+name: Sloth Mode beta bug report
+description: Report a reproducible issue with the experimental website or native preview (never include secrets)
+title: "[Beta] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing Sloth Mode. This is beta software. **Do not share pairing keys, account codes, access tokens, passwords, private notes, API keys, raw prompts, or personal logs.**
+        For security-sensitive vulnerabilities, follow [the private security reporting policy](https://github.com/marceli1404/sloth-mode/blob/main/SECURITY.md) rather than filing a public issue.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - Windows desktop companion
+        - Windows installer
+        - Linux companion
+        - Website / account
+        - Browser Gemma (WebGPU)
+        - Other / uncertain
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How can someone reproduce it?
+      description: Use fictional task text and remove all identifying details.
+      placeholder: "1. Open... 2. Click... 3. Observe..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Build, operating system, browser (if known)
+      placeholder: "Windows 11 x64, preview commit 72f2e1d, Firefox/Chrome version..."
+    validations:
+      required: false
+  - type: textarea
+    id: sanitized
+    attributes:
+      label: Optional redacted evidence
+      description: Include only non-sensitive error messages, crash codes or fabricated test results. Never paste complete raw logs.
+    validations:
+      required: false
