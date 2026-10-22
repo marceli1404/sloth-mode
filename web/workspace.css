@@ -212,3 +212,9 @@ html.sm-workspace-ready[data-sloth-page="dashboard"] #sm-pane-items-companion > 
 .sm-window-logo-mark svg{width:28px;height:28px;display:block;flex-shrink:0}
 .site-header .brand-mark{border-radius:10px}
 @media(max-width:690px){.sm-window-logo-mark svg{width:23px;height:23px}}
+
+/* Public beta feedback stays accessible on mobile when the desktop sidebar is hidden. */
+.sm-window-feedback{font-size:11px;font-weight:750;color:#2d6748;text-underline-offset:3px;white-space:normal}
+.sm-window-feedback:hover{color:#173b31}
+.sm-window-feedback:focus-visible{outline:3px solid #bd7847;outline-offset:3px;border-radius:3px}
+@media(max-width:690px){.sm-window-statusbar{display:flex;align-items:start;gap:9px;flex-wrap:wrap}.sm-window-feedback{font-size:11px;min-height:30px}}
