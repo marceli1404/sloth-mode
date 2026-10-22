@@ -2,6 +2,8 @@
 
 **Slow down. Get things done.** A local-first AI productivity assistant with optional cloud accounts.
 
+**Release status: public web beta, unsigned Windows preview, experimental Linux build. Not yet a signed stable release.** See the [public beta guide](docs/PUBLIC_BETA_LAUNCH.md) for test evidence, download instructions, security limitations and release gates.
+
 [Website](https://sloth.marceli.dev) · [Try the workspace](https://sloth.marceli.dev/dashboard) · [Issue tracker](https://github.com/marceli1404/sloth-mode/issues)
 
 Sloth Mode supports optional **browser-native Gemma 4 E2B using WebGPU** (experimental; opt-in ~2.01 GB model download), alongside **Gemma 3 GGUF through `llama.cpp`** for native inference. The companion runs in the background on Windows or Linux and pairs explicitly with the web interface through a loopback API. **Ollama and an account are not required.** The public Quiet Lab sample demo uses illustrative deterministic sorting, not actual Gemma inference.
@@ -10,7 +12,7 @@ Sloth Mode supports optional **browser-native Gemma 4 E2B using WebGPU** (experi
 
 From the [dashboard](https://sloth.marceli.dev/dashboard), use **Run Gemma in your browser**. A compatible HTTPS/WebGPU browser can explicitly download the ~2.01 GB Gemma 4 E2B model into browser-private storage. Planning is local, and no account, native companion or cloud inference endpoint is needed. The original Windows/Linux companion and opt-in account tasks remain separate.
 
-The browser path is **experimental**. Real GPU inference, browser cache reuse, CORS and runtime asset delivery are not yet validated on production hardware; downloads are checked by exact size but not a streaming SHA-256 digest. See [browser Gemma technical and deployment checklist](docs/BROWSER_AI.md). **Publishing the web files to the live domain is a separate deployment step; merging source does not serve the feature automatically.**
+The browser path is **experimental**. Real GPU inference, browser cache reuse, CORS and runtime asset delivery are not yet validated on production hardware; downloads are checked by exact size but not a streaming SHA-256 digest. See [browser Gemma technical and deployment checklist](docs/BROWSER_AI.md). **The live site has been deployed separately from this repository.** Its embedded production Worker includes account/API routing not fully represented by the standalone reference source; merging a GitHub change alone does not update that Worker.
 
 ## One integrated workspace
 
@@ -80,7 +82,7 @@ The companion listens on **127.0.0.1:39871** and requires explicit browser pairi
 
 ## Release status
 
-For hardware tests and guest/account privacy checks, use the [release validation checklist](docs/RELEASE_VALIDATION.md). CI builds alone do not establish device-level reliability.
+The [public beta launch guide](docs/PUBLIC_BETA_LAUNCH.md) links to the latest documented unsigned Windows preview and explains the remaining security/hardware gates. For supported hardware claims and guest/account privacy verification, follow the [release validation checklist](docs/RELEASE_VALIDATION.md). **CI builds alone do not establish device-level reliability or clear CodeQL alerts.**
 
 
 The Linux port is **beta**. Linux x86-64 has passed a headless connector smoke test; ARM64 was cross-compiled but not tested on physical hardware. GPU acceleration and first real Gemma inference require a machine-level test. Windows binaries are not code-signed. Don't rely on the preview in sensitive workflows without reviewing the code.
