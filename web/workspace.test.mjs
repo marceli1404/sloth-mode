@@ -20,7 +20,7 @@ test("all original features appear once in integrated workspace",()=>{
 });
 test("both dashboard routes load module and preserve homepage",()=>{
  assert.match(html,/location\.pathname==="\/integrations"\?"dashboard":"home"/);
- assert.match(html,/<link rel="stylesheet" href="\/workspace\.css">/);
+ assert.match(html,/<link rel="stylesheet" href="\/workspace\.css\?edition=botanical-20261023">/);
  assert.match(html,/<script type="module" src="\/workspace\.mjs"><\/script>/);
  assert.match(script,/dataset\.slothPage!=="dashboard"/);
  assert.match(css,/html\.sm-workspace-ready\[data-sloth-page="dashboard"\]/);
