@@ -80,3 +80,22 @@ native installer UI are excluded. No third-party content was crawled.
 Rollback baseline: Worker version `cc8abb7f-4467-4da2-a77d-e0d22f0eef48`.
 Production handlers excluding replaced constants SHA256:
 `b2a6447cd8af04b43b324ea1e238b8bc6601c9543a23fab79194419214e0f70d`.
+
+
+## Production result
+
+Live: https://sloth.marceli.dev
+
+- Source implementation commit: `35b927c`.
+- Worker version: `aefcc61f-b09e-4b9b-bd0b-a53736728131`.
+- Deployment: `c154ba25-0c7a-4356-a7cf-d77143b4f7b7`, 100% traffic.
+- Bundle SHA256: `91ee9aa8004fb52d6041b100c158098df48f0e67f8bda535726df0608db4dff7`.
+- Live verification passes: three routes, five pane layouts, fictional sample and
+  undo, guest auth, anonymous task rejection, exact stylesheet hash, unchanged
+  workspace/browser-AI runtime and security headers, no uncaught browser errors.
+- Account bundle tests were run with checked-out asset newlines normalized to
+  canonical LF for the byte-for-byte fixture on Windows; those local formatting
+  changes were restored and are not part of this deployment.
+
+The full Windows installer and personal account CRUD were not exercised by this
+website deployment. These remain the existing device/account validation limits.
