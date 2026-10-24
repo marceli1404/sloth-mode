@@ -48,11 +48,11 @@ The earlier promotional overview remains available:
 
 ### Trying the native path
 
-1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40091059467)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
+1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40114869780)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
 2. Install the companion for your Windows account. Open **Setup & Pairing**, then pair the browser you trust.
 3. Separately approve the Gemma model and runtime download. Use fictional notes for your first plan and review the suggestions.
 
-The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/main/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
+The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/133f1d1d0c4fe97a1a54b405a89a0d795fcd9bf8/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
 
 On 24 October I also refined the installer. Its old preview clipped text and made it too hard to see what would happen next. The [new candidate in PR #34](https://github.com/marceli1404/sloth-mode/pull/34) separates installation, browser pairing and the optional model download, with readable status and a layout that fits the monitor. The linked candidate passes Linux, Windows and cloud CI plus CodeQL checks. A full clean-profile installation and pairing run for this candidate is still pending.
 
