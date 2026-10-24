@@ -15,11 +15,20 @@
 | Browser model tab, [Gemma 4 E2B](../web/browser-ai.mjs) | Experimental local WebGPU/LiteRT-LM after ~2GB explicit download | Source exists, but cross-device GPU inference, model integrity, and production compatibility are not yet established |
 | Optional account | Explicitly account-saved tasks via Cloudflare D1 | Not the local notes or native prompts; account authorization is distinct from local pairing |
 
-The short video linked above is a **promotional overview**, not a recorded proof of real inference.
+The promotional overview and actual model demonstration are separate:
+
+- **[Watch the uncut 41-second browser-to-Gemma run](https://raw.githubusercontent.com/marceli1404/sloth-mode/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/real-browser-gemma-uncut.mp4).** Four fictional notes, actual browser pairing and signed requests, real Gemma 3 4B CPU inference, source-linked results, editing, export and reconnection. Click-to-visible-results took 25.063 seconds, including startup and polling, with four CPU threads and zero GPU layers.
+- **[Read the inputs, output, limits and reproduction steps](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/README.md).** This controlled local run used already-installed assets. It does not establish clean installation, model-download reliability, machine-wide offline behavior or time saved.
+- The earlier short video is a **promotional overview**, not proof of model execution.
+
+For the native Windows route, use the identified unsigned candidate linked in
+the [published entry](https://dev.to/marceli/sloth-mode-i-built-a-local-gemma-assistant-so-my-brain-can-be-a-little-lazier-ci4).
+Its Actions download may require a GitHub login. Quiet Lab and the recording
+remain available without installing the companion or creating a Sloth Mode account.
 
 ## Thirty-second read for judges
 
-Sloth Mode addresses the uncomfortable gap between *capturing a thought* and *knowing what to do next*. A typical to-do list asks you to organise your entries; Sloth Mode offers an optional local model that drafts that organisation for you. You can start without an account, keep a local inbox, accept or reject model suggestions, and use the GGUF offline after first-time downloads.
+Sloth Mode addresses the uncomfortable gap between *capturing a thought* and *knowing what to do next*. A typical to-do list asks you to organise your entries; Sloth Mode offers an optional local model that drafts that organisation for you. You can start without an account, keep a local inbox, review suggestions beside the original notes, and edit or ignore them. Native inference is designed to run locally after setup; independent offline acceptance for the new installer remains pending.
 
 **Why open weights matter here:** with Gemma 3 and `llama.cpp`, the source notes don't need to be sent to a hosted model endpoint for task planning. The runtime and quantization can be inspected or changed, and per-prompt vendor inference billing isn't mandatory. Initial model downloads still need connectivity, memory/disk requirements still apply, and the account and web delivery paths still use online services.
 

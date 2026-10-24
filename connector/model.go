@@ -467,10 +467,26 @@ func installAI(ctx context.Context, base, backend string, status statusFunc) err
 	quant := preferredQuant(base, profileHardware())
 	spec := modelSpec(quant)
 	mod := modelPathFor(base, quant)
-	info, err := os.Stat(mod)
-	if err != nil || info.Size() < spec.Size*90/100 {
+	_, err := os.Lstat(mod)
+	if errors.Is(err, os.ErrNotExist) {
 		status("Downloading Gemma 3 4B " + quant + " (verified GGUF weights)...")
 		if err = download(ctx, spec.URL, mod, maxModelBytes, spec.Hash, status); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return fmt.Errorf("could not inspect the existing Gemma model: %w", err)
+	} else {
+		status("Verifying the existing Gemma model checksum...")
+		err = verifyModelFile(ctx, mod, spec, status)
+		if err == nil {
+			status("Gemma and llama.cpp ready for offline use")
+			return nil
+		}
+		if !errors.Is(err, errModelSize) && !errors.Is(err, errModelDigest) {
+			return err
+		}
+		status("Existing Gemma model failed integrity checks; downloading a verified replacement...")
+		if err = replaceModelWithVerifiedDownload(ctx, mod, spec, status); err != nil {
 			return err
 		}
 	}
@@ -489,6 +505,10 @@ func startEngine(ctx context.Context, base, backend string, status statusFunc) (
 	server := runtimePath(base, backend)
 	if !detectAI(base, backend) {
 		return nil, errors.New("install model and local runtime first")
+	}
+	status("Verifying Gemma model integrity before loading...")
+	if err := verifyModelFile(ctx, model, modelSpec(preferredQuant(base, profileHardware())), status); err != nil {
+		return nil, err
 	}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
