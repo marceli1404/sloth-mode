@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -42,6 +43,7 @@ func TestInstallerControlTextFits(t *testing.T) {
 		}
 		hwnd = h
 		buildInstallerControls()
+		setWindowText.Call(graphicsLabel, utf16(formatInstallerGPU(strings.Repeat("W", 70))))
 		for _, c := range controls {
 			if c.handle == 0 {
 				t.Fatal("control creation failed")
