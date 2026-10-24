@@ -28,27 +28,27 @@ An optional account holds a **separate** list of tasks you explicitly save there
 
 Start with Quiet Lab and its sample notes. It is the quickest way to understand the interaction, and it is labelled as a preview: **it does not call Gemma**.
 
-The existing short video introduces the public beta:
+### Watch the actual local model run
+
+**[Download the uncut 41-second recording (MP4, 1.7 MB)](https://raw.githubusercontent.com/marceli1404/sloth-mode/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/real-browser-gemma-uncut.mp4)**
+
+![Actual browser results from four fictional notes: two Do next suggestions, one Save for later and one No action, with a warning to check timing in the original notes.](https://raw.githubusercontent.com/marceli1404/sloth-mode/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/browser-results.png)
+
+The recording shows a browser paired with the real Go companion, Gemma 3 4B Q4_K_M running through `llama.cpp`, and the resulting suggestions. It then checks editing, export and reconnecting after a reload. Clicking Plan to seeing results took **25.063 seconds**, including model loading and UI polling, with four CPU threads and zero GPU layers. The files were already installed.
+
+The lab report due before 4 PM today and the borrowed book due tomorrow both become Do next. Optional reading becomes Save for later; an already submitted form becomes No action. Gemma still drops timing from the first two suggestions. The status points to their original notes so the person reviewing the plan can catch it.
+
+This uses a labelled local copy of the workspace, fictional notes and the production pairing/planning handlers. It is actual model output, with no mocked planning responses, cuts or speed changes. It does **not** demonstrate a clean installation, model download or machine-wide offline operation. The [recording notes, raw responses and reproduction steps](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/README.md) make that boundary explicit.
+
+The earlier promotional overview remains available:
 
 {% youtube GnaEFKQW9Vw %}
 
-*This is a promotional overview, not a recording or benchmark of model inference.*
-
-### What real Gemma returned
-
-In a recorded **21 October CPU check**, Gemma 3 4B Q4_K_M processed these three fictional notes:
-
-| Original note | Suggested priority | Suggested next action |
-|---|---|---|
-| Pay electricity bill tomorrow. | Do next | Pay the electricity bill |
-| Read a chapter of a novel when I have time. | Save for later | Read a chapter of the novel |
-| I finished tidying my desk yesterday; no more action is needed. | No action | No action needed |
-
-Model startup took **2.766 seconds** and the generation request took **14.808 seconds**, using four CPU threads and zero GPU layers with the files already downloaded. That is one functional check on three notes, not a general quality score or a measurement of time saved. The [CPU report](https://github.com/marceli1404/sloth-mode/blob/564f4a3dd5364cfe191eb22b3dcd40cc5a4be5ba/docs/CPU_DEMO_REPORT.md) records the source, environment, hashes and earlier failures. These historical timings are separate from the new installer work.
+*This is a promotional overview, separate from the real-model recording above.*
 
 ### Trying the native path
 
-1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40088192352)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
+1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40091059467)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
 2. Install the companion for your Windows account. Open **Setup & Pairing**, then pair the browser you trust.
 3. Separately approve the Gemma model and runtime download. Use fictional notes for your first plan and review the suggestions.
 
@@ -91,11 +91,22 @@ The validator checks IDs and structure before accepting a plan. It can reject an
 
 The first three-note run made the bill less urgent and treated optional reading as requiring no action. Explicit priority rules and examples helped, but another run paired an actionable bill with “No action needed.” That was a useful reminder to check both the label and the proposed action.
 
-I then tested **12 unfamiliar fictional notes** with priorities fixed beforehand. The baseline returned all 12 IDs and matched all 12 expected priorities. It still dropped “tomorrow” from the library-book summary and next action. The task looked sensible while losing its deadline.
+On 24 October I froze **12 new fictional notes and their expected priorities before inference**, then ran the baseline and candidate once each with the same existing model, four CPU threads, zero GPU layers and temperature zero.
 
-An experimental instruction to preserve timing improved some summaries, but the priority score fell to **11/12**: “call the building manager today” moved from Do next to Save for later.
+| Check | Baseline | Candidate |
+|---|---|---|
+| Matches the predefined priority | 9/12 | 12/12 |
+| Repeats recognised timing in the summary or next action | 0/9 | 1/9 |
 
-Both sets of [recorded inputs and outputs](https://github.com/marceli1404/sloth-mode/tree/564f4a3dd5364cfe191eb22b3dcd40cc5a4be5ba/docs/evaluation) are published with their limits. These are small historical runs, not a representative benchmark, and the experiment's exact prompt snapshot was not retained. I cannot treat the better score as a guarantee for current builds. It is why the original note and human review remain part of the workflow.
+Restoring explicit priority rules helped this small set. The second row is the unresolved problem: correct labels can hide missing details. A limited English phrase check now flags actionable suggestions that omit recognised timing and points back to their source notes. All **seven** such omissions in the candidate's recorded output trigger that warning. It does not calculate dates, understand every deadline or repair the model's wording.
+
+The [frozen inputs](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/inputs.json), [raw candidate output](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/candidate-results.json) and [scoring method](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/README.md) are public. Categories were not scored. These 12 examples are functional checks, not a representative accuracy benchmark or a measurement of effort saved.
+
+The older evaluation is a different 12-note set: its baseline matched 12/12 priorities, while a timing-preservation experiment fell to 11/12. Those [historical inputs and outputs](https://github.com/marceli1404/sloth-mode/tree/564f4a3dd5364cfe191eb22b3dcd40cc5a4be5ba/docs/evaluation) remain published, including their missing prompt snapshot. I keep them separate from the new frozen comparison.
+
+### Keep suggestions attached to the right draft
+
+A person can edit a note while a local model is still thinking. Applying the old answer to the new wording would make the plan misleading. The companion now checks the entire input snapshot under the storage lock before saving suggestions. If any input was edited, completed, deleted or already classified, it rejects the batch without saving a partial plan. Capturing an unrelated new note is allowed. Regression tests cover those cases and confirm that rejected batches leave the notes file unchanged.
 
 ### Setup deserves the same care
 
@@ -115,9 +126,9 @@ After downloading the model and runtime, native inference can run without an int
 
 The effort I want to remove is the sorting between “I should remember this” and “here is one thing I can start.” Gemma drafts priorities and next actions so I have something small to review.
 
-I have not measured minutes saved per day or run a multi-user study. My evidence is narrower: actual CPU output, published synthetic failures, a working guest preview, and owner experience on one Windows environment. A useful next study would compare manual sorting with assisted sorting on the same fictional backlog, including review time, mistakes and setup cost.
+I have not measured minutes saved per day or run a multi-user study. My evidence is narrower: a real browser-to-model recording, predefined fictional examples with their failures, a working guest preview, and owner experience on one Windows environment. A useful next study would compare manual sorting with assisted sorting on the same fictional backlog, including review time, mistakes and setup cost.
 
-This is still a public beta. Signed installers, independent native security review, wider Linux/GPU coverage and a recorded end-to-end demonstration remain unfinished. Browser Gemma is experimental. The [release checklist](https://github.com/marceli1404/sloth-mode/blob/main/docs/RELEASE_VALIDATION.md) keeps those gaps visible.
+This is still a public beta. Signed installers, independent native security review, wider Linux/GPU coverage, a clean-install recording and independent offline acceptance remain unfinished. Browser Gemma is experimental. The [release checklist](https://github.com/marceli1404/sloth-mode/blob/main/docs/RELEASE_VALIDATION.md) keeps those gaps visible.
 
 ## Prize Categories
 
