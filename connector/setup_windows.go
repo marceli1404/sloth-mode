@@ -38,59 +38,68 @@ const (
 	idOpenAccount      = 308
 	idPasteAccount     = 309
 	wmHardwareResult   = 0x8000 + 47 // Win32 UI thread only
-	wmAccountLinkDone   = 0x8000 + 46 // WM_APP; update native controls only on their owning thread
+	wmAccountLinkDone  = 0x8000 + 46 // WM_APP; update native controls only on their owning thread
 )
 
 var (
-	pShowWindow        = u32.NewProc("ShowWindow")
-	pUpdateWindow      = u32.NewProc("UpdateWindow")
-	pSetFocus          = u32.NewProc("SetFocus")
-	pSendMessage       = u32.NewProc("SendMessageW")
-	pGetStockObject    = syscall.NewLazyDLL("gdi32.dll").NewProc("GetStockObject")
-	pSetWindowText     = u32.NewProc("SetWindowTextW")
-	pIsWindow          = u32.NewProc("IsWindow")
-	pFindWindow        = u32.NewProc("FindWindowW")
-	pPostSetup         = u32.NewProc("PostMessageW")
-	pSetWindowPos      = u32.NewProc("SetWindowPos")
-	pGetSystemMetrics  = u32.NewProc("GetSystemMetrics")
-	setupHandle        uintptr
-	setupKeyField      uintptr
-	setupStartupButton uintptr
-	setupTrayLabel     uintptr
-	setupAccountField  uintptr
-	setupAccountStatus uintptr
-	setupHardwareLabel uintptr
-	setupHardwareMu sync.Mutex
-	setupHardwareResult string
-	accountLinkMu      sync.Mutex
-	accountLinkResult  error
-	accountLinkPending bool // accessed only from the Win32 message loop
+	pShowWindow           = u32.NewProc("ShowWindow")
+	pUpdateWindow         = u32.NewProc("UpdateWindow")
+	pSetFocus             = u32.NewProc("SetFocus")
+	pSendMessage          = u32.NewProc("SendMessageW")
+	pGetStockObject       = syscall.NewLazyDLL("gdi32.dll").NewProc("GetStockObject")
+	pSetWindowText        = u32.NewProc("SetWindowTextW")
+	pIsWindow             = u32.NewProc("IsWindow")
+	pFindWindow           = u32.NewProc("FindWindowW")
+	pPostSetup            = u32.NewProc("PostMessageW")
+	pSetWindowPos         = u32.NewProc("SetWindowPos")
+	pGetSystemMetrics     = u32.NewProc("GetSystemMetrics")
+	pSystemParametersInfo = u32.NewProc("SystemParametersInfoW")
+	pGetDpiForSystem      = u32.NewProc("GetDpiForSystem")
+	pInvalidateSetup      = u32.NewProc("InvalidateRect")
+	setupHandle           uintptr
+	setupKeyField         uintptr
+	setupStartupButton    uintptr
+	setupTrayLabel        uintptr
+	setupAccountField     uintptr
+	setupAccountStatus    uintptr
+	setupHardwareLabel    uintptr
+	setupHardwareMu       sync.Mutex
+	setupHardwareResult   string
+	accountLinkMu         sync.Mutex
+	accountLinkResult     error
+	accountLinkPending    bool // accessed only from the Win32 message loop
 )
 
 // Bound account-code input before allocating a UTF-16 buffer from UI length.
 func validAccountLinkInputLength(length uintptr) bool { return length > 0 && length <= 64 }
 
 func setupControl(parent uintptr, typ, content string, x, y, width, height int32, style uint32, id uintptr) uintptr {
+	x, y, width, height = setupPx(x, setupScale), setupPx(y, setupScale), setupPx(width, setupScale), setupPx(height, setupScale)
 	instance, _, _ := pModule.Call(0)
 	hwnd, _, _ := pCreate.Call(0, wint(typ), wint(content), uintptr(wsVisible|wsChild|style), uintptr(x), uintptr(y), uintptr(width), uintptr(height), parent, id, instance, 0)
 	if hwnd != 0 {
-		font, _, _ := pGetStockObject.Call(17) // DEFAULT_GUI_FONT
-		pSendMessage.Call(hwnd, wmSetFont, font, 1)
+		pSendMessage.Call(hwnd, wmSetFont, setupButtonFont, 1)
 	}
 	return hwnd
 }
 func setupHeading(parent uintptr, s string, x, y, w, h int32) uintptr {
-	return setupControl(parent, "STATIC", s, x, y, w, h, 0, 0)
+	hwnd := setupControl(parent, "STATIC", s, x, y, w, h, 0x80, 0)
+	font := setupButtonFont
+	if strings.HasPrefix(s, "01   ") || strings.HasPrefix(s, "02   ") || strings.HasPrefix(s, "03   ") || strings.HasPrefix(s, "04   ") {
+		font = setupHeadingFont
+	}
+	if s == "Ready on this computer" {
+		font = setupTitleFont
+	}
+	pSendMessage.Call(hwnd, wmSetFont, font, 1)
+	return hwnd
 }
 func refreshStartupLabel() {
 	if setupStartupButton == 0 {
 		return
 	}
-	label := "[ ] Start automatically at Windows sign-in"
-	if startWithWindowsEnabled() {
-		label = "[x] Start automatically at Windows sign-in"
-	}
-	pSetWindowText.Call(setupStartupButton, wint(label))
+	pSetWindowText.Call(setupStartupButton, wint("Start automatically at Windows sign-in"))
+	pInvalidateSetup.Call(setupStartupButton, 0, 1)
 }
 func showSetupWindow() {
 	if setupHandle == 0 {
@@ -159,7 +168,9 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 			pSetWindowText.Call(setupAccountStatus, wint("Linking account…"))
 			go func(owner uintptr, oneTimeCode string) {
 				name, e := os.Hostname()
-				if e != nil || name == "" { name = "Windows PC" }
+				if e != nil || name == "" {
+					name = "Windows PC"
+				}
 				result := linkAccount(winBridge.base, oneTimeCode, name)
 				accountLinkMu.Lock()
 				accountLinkResult = result
@@ -197,6 +208,10 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 			pSetWindowText.Call(setupHardwareLabel, wint(result))
 		}
 		return 0
+	case setupWmCtlColorStatic, setupWmCtlColorEdit:
+		return setupColorControl(msg, w)
+	case setupWmDrawItem:
+		return setupPaintButton(l)
 	case wmAccountLinkDone:
 		accountLinkMu.Lock()
 		result := accountLinkResult
@@ -222,6 +237,7 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 	case wmDestroy:
 		setupHandle = 0
 		setupHardwareLabel = 0
+		setupReleaseTheme()
 		// Exiting the visible setup window deliberately quits only when the tray is absent,
 		// or the user pressed Exit. The hidden tray owner manages server shutdown.
 		if trayData.Hwnd != 0 {
@@ -242,47 +258,72 @@ var setupCallback = syscall.NewCallback(func(hwnd, msg, w, l uintptr) uintptr {
 
 func createSetupWindow(instance uintptr) bool {
 	cls := "SlothModeSetupWindow"
-	wc := winClass{Size: uint32(unsafe.Sizeof(winClass{})), WndProc: setupCallback, Instance: instance, ClassName: wint(cls), Background: 6}
+	setupWork := setupRect{}
+	pSystemParametersInfo.Call(0x30, 0, uintptr(unsafe.Pointer(&setupWork)), 0)
+	if setupWork.right <= setupWork.left || setupWork.bottom <= setupWork.top {
+		screenX, _, _ := pGetSystemMetrics.Call(0)
+		screenY, _, _ := pGetSystemMetrics.Call(1)
+		setupWork = setupRect{0, 0, int32(screenX), int32(screenY)}
+	}
+	dpi := uintptr(96)
+	if pGetDpiForSystem.Find() == nil {
+		dpi, _, _ = pGetDpiForSystem.Call()
+	}
+	if dpi == 0 {
+		dpi = 96
+	}
+	client := setupRect{0, 0, setupClientWidth, setupClientHeight}
+	adjust := u32.NewProc("AdjustWindowRectExForDpi")
+	if adjust.Find() == nil {
+		adjust.Call(uintptr(unsafe.Pointer(&client)), wsOverlappedWindow, 0, 0, dpi)
+	} else {
+		u32.NewProc("AdjustWindowRectEx").Call(uintptr(unsafe.Pointer(&client)), wsOverlappedWindow, 0, 0)
+	}
+	frameWidth, frameHeight := client.right-client.left-setupClientWidth, client.bottom-client.top-setupClientHeight
+	setupScale = setupFitScale(uint32(dpi), setupWork.right-setupWork.left, setupWork.bottom-setupWork.top, frameWidth, frameHeight)
+	setupInitTheme(setupScale)
+	client = setupRect{0, 0, setupPx(setupClientWidth, setupScale), setupPx(setupClientHeight, setupScale)}
+	if adjust.Find() == nil {
+		adjust.Call(uintptr(unsafe.Pointer(&client)), wsOverlappedWindow, 0, 0, dpi)
+	} else {
+		u32.NewProc("AdjustWindowRectEx").Call(uintptr(unsafe.Pointer(&client)), wsOverlappedWindow, 0, 0)
+	}
+	frameWidth, frameHeight = client.right-client.left-setupPx(setupClientWidth, setupScale), client.bottom-client.top-setupPx(setupClientHeight, setupScale)
+	bounds := setupBounds(setupWork, setupScale, frameWidth, frameHeight)
+	wc := winClass{Size: uint32(unsafe.Sizeof(winClass{})), WndProc: setupCallback, Instance: instance, ClassName: wint(cls), Background: setupCreamBrush}
 	if r, _, _ := pRegister.Call(uintptr(unsafe.Pointer(&wc))); r == 0 {
 		logStartup("RegisterClassExW failed for setup window")
+		setupReleaseTheme()
 		return false
 	}
-	screenX, _, _ := pGetSystemMetrics.Call(0)
-	screenY, _, _ := pGetSystemMetrics.Call(1)
-	x, y := int32(140), int32(90)
-	if screenX > 720 {
-		x = (int32(screenX) - 690) / 2
-	}
-	if screenY > 700 {
-		y = (int32(screenY) - 680) / 2
-	}
-	hwnd, _, _ := pCreate.Call(0, wint(cls), wint("Sloth Mode - Setup & Pairing"), wsOverlappedWindow, uintptr(x), uintptr(y), 690, 680, 0, 0, instance, 0)
+	hwnd, _, _ := pCreate.Call(0, wint(cls), wint("Sloth Mode - Setup & Pairing"), wsOverlappedWindow, uintptr(bounds.left), uintptr(bounds.top), uintptr(bounds.right-bounds.left), uintptr(bounds.bottom-bounds.top), 0, 0, instance, 0)
 	if hwnd == 0 {
 		logStartup("CreateWindowExW failed for setup window")
+		setupReleaseTheme()
 		return false
 	}
 	setupHandle = hwnd
-	setupHeading(hwnd, "SLOTH MODE     /     LOCAL AI COMPANION", 29, 25, 570, 28)
-	setupHeading(hwnd, "Ready on this computer", 29, 60, 620, 28)
-	setupHeading(hwnd, "The connector runs locally. You can control it through sloth.marceli.dev.", 29, 92, 635, 25)
-	setupHeading(hwnd, "STEP 1     Browser pairing key (not an account code)", 29, 139, 610, 22)
-	setupHeading(hwnd, "Use Copy key below, then paste into the website. Never share this key.", 29, 165, 610, 22)
-	setupKeyField = setupControl(hwnd, "EDIT", winBridge.secret, 29, 193, 475, 33, wsTabstop|esAutoHscroll|esReadOnly, 0)
-	setupControl(hwnd, "BUTTON", "Copy key", 516, 193, 134, 33, wsTabstop, idCopyKey)
-	setupHeading(hwnd, "STEP 2     Connect the website", 29, 247, 610, 22)
-	setupHeading(hwnd, "Open the site, click Find local app, and paste your key. Allow local access if asked.", 29, 272, 635, 22)
-	setupControl(hwnd, "BUTTON", "Open sloth.marceli.dev", 29, 302, 254, 37, wsTabstop, idOpenWebsite)
-	setupHeading(hwnd, "STEP 3     Enter your one-time account linking code", 29, 351, 610, 22)
-	setupHeading(hwnd, "Account dashboard: Link a computer > Copy code > Paste below.", 29, 376, 610, 22)
-	setupAccountField = setupControl(hwnd, "EDIT", "", 29, 404, 282, 34, wsTabstop|esAutoHscroll, 0)
+	setupHeading(hwnd, "SLOTH MODE   /   LOCAL COMPANION", 28, 20, 590, 22)
+	setupHeading(hwnd, "Ready on this computer", 28, 47, 610, 31)
+	setupHeading(hwnd, "Your connector stays on this PC. Pair it at sloth.marceli.dev.", 28, 81, 610, 22)
+	setupHeading(hwnd, "01   Pair a browser", 28, 119, 610, 23)
+	setupHeading(hwnd, "Copy this private key, then paste it into the website.", 28, 143, 610, 21)
+	setupKeyField = setupControl(hwnd, "EDIT", winBridge.secret, 28, 168, 474, 32, wsTabstop|esAutoHscroll|esReadOnly, 0)
+	setupControl(hwnd, "BUTTON", "Copy key", 512, 168, 126, 32, wsTabstop|setupBsOwnerDraw, idCopyKey)
+	setupHeading(hwnd, "02   Connect the website", 28, 211, 610, 23)
+	setupHeading(hwnd, "Select Find local app, paste the key, and allow local access.", 28, 235, 610, 21)
+	setupControl(hwnd, "BUTTON", "Open sloth.marceli.dev", 28, 260, 245, 36, wsTabstop|setupBsOwnerDraw, idOpenWebsite)
+	setupHeading(hwnd, "03   Link your account (optional)", 28, 310, 610, 23)
+	setupHeading(hwnd, "Get a one-time code from your account page, then paste it here.", 28, 334, 610, 21)
+	setupAccountField = setupControl(hwnd, "EDIT", "", 28, 359, 270, 32, wsTabstop|esAutoHscroll, 0)
 	pSendMessage.Call(setupAccountField, 0x00C5, 64, 0) // EM_LIMITTEXT: never buffer unbounded pasted codes
-	setupControl(hwnd, "BUTTON", "Paste", 319, 404, 65, 34, wsTabstop, idPasteAccount)
-	setupControl(hwnd, "BUTTON", "Link", 392, 404, 103, 34, wsTabstop, idLinkAccount)
-	setupControl(hwnd, "BUTTON", "Account page", 504, 404, 148, 34, wsTabstop, idOpenAccount)
-	setupAccountStatus = setupHeading(hwnd, "Not linked. Local pairing still works.", 29, 443, 620, 22)
-	setupHeading(hwnd, "STEP 4     Optional: install local Gemma", 29, 488, 610, 22)
-	setupHeading(hwnd, "Approve a verified GGUF download from your dashboard; no Ollama needed.", 29, 513, 625, 22)
-	setupHardwareLabel = setupHeading(hwnd, "Checking your hardware for the best Gemma size...", 29, 534, 625, 20)
+	setupControl(hwnd, "BUTTON", "Paste", 306, 359, 63, 32, wsTabstop|setupBsOwnerDraw, idPasteAccount)
+	setupControl(hwnd, "BUTTON", "Link", 377, 359, 78, 32, wsTabstop|setupBsOwnerDraw, idLinkAccount)
+	setupControl(hwnd, "BUTTON", "Account page", 463, 359, 145, 32, wsTabstop|setupBsOwnerDraw, idOpenAccount)
+	setupAccountStatus = setupHeading(hwnd, "Not linked. Browser pairing works without this.", 28, 394, 610, 21)
+	setupHeading(hwnd, "04   Add Gemma (optional)", 28, 434, 610, 23)
+	setupHeading(hwnd, "Approve a model download on your dashboard. No Ollama needed.", 28, 458, 610, 21)
+	setupHardwareLabel = setupHeading(hwnd, "Checking this PC for a suitable Gemma size…", 28, 481, 610, 21)
 	go func(owner uintptr) {
 		p := profileHardware()
 		setupHardwareMu.Lock()
@@ -290,12 +331,12 @@ func createSetupWindow(instance uintptr) bool {
 		setupHardwareMu.Unlock()
 		pPostSetup.Call(owner, wmHardwareResult, 0, 0)
 	}(hwnd)
-	setupStartupButton = setupControl(hwnd, "BUTTON", "", 29, 556, 400, 28, wsTabstop, idAutoStart)
-	setupControl(hwnd, "BUTTON", "Hide to tray", 368, 603, 136, 37, wsTabstop, idHide)
-	setupControl(hwnd, "BUTTON", "Exit connector", 515, 603, 136, 37, wsTabstop, idCloseApp)
-	setupTrayLabel = setupHeading(hwnd, "Closing this window hides the connector in the tray.", 29, 606, 322, 38)
+	setupStartupButton = setupControl(hwnd, "BUTTON", "", 28, 511, 390, 28, wsTabstop|setupBsOwnerDraw, idAutoStart)
+	setupTrayLabel = setupHeading(hwnd, "Close hides the connector in the tray.", 28, 562, 300, 26)
+	setupControl(hwnd, "BUTTON", "Hide to tray", 361, 556, 128, 36, wsTabstop|setupBsOwnerDraw, idHide)
+	setupControl(hwnd, "BUTTON", "Exit connector", 500, 556, 138, 36, wsTabstop|setupBsOwnerDraw, idCloseApp)
 	if !trayReady {
-		pSetWindowText.Call(setupTrayLabel, wint("Tray icon unavailable. Keep this window open."))
+		pSetWindowText.Call(setupTrayLabel, wint("No tray icon. Keep this window open."))
 	}
 	refreshStartupLabel()
 	pShowWindow.Call(hwnd, swShow)

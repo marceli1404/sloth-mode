@@ -322,7 +322,11 @@ func (b *Bridge) handler() http.Handler {
 						return
 					}
 					defer e.stop()
-					b.setProgress("Gemma is reviewing " + strconv.Itoa(len(items)) + " local notes...")
+					noun := "local notes"
+					if len(items) == 1 {
+						noun = "local note"
+					}
+					b.setProgress("Gemma is reviewing " + strconv.Itoa(len(items)) + " " + noun + "...")
 					out, err := e.triage(ctx, items)
 					if err == nil {
 						err = b.store.Apply(out, items)

@@ -37,7 +37,11 @@ func planSummary(items []TriageItem, inputs []Task) string {
 			ids = append(ids, "#"+strconv.FormatInt(item.ID, 10))
 		}
 	}
-	message := fmt.Sprintf("Gemma drafted %d tasks locally. Review the suggestions before acting.", len(items))
+	noun := "tasks"
+	if len(items) == 1 {
+		noun = "task"
+	}
+	message := fmt.Sprintf("Gemma drafted %d %s locally. Review the suggestions before acting.", len(items), noun)
 	if len(ids) > 0 {
 		message += " Timing was omitted from suggestions for " + strings.Join(ids, ", ") + "; check their original notes."
 	}
