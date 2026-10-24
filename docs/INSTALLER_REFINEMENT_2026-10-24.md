@@ -20,3 +20,7 @@ CI now retains the unsigned preview artifact and SHA-256 for branch/PR builds as
 ## Limits
 
 No new clean-profile install, reboot, browser pairing, real-model run or network-off test was performed for this candidate. The previously reported successful Windows experience belongs to older previews. Independent security review, signing, additional device coverage and the other [release checks](RELEASE_VALIDATION.md) remain open. [Previous-winner comparison](WINNER_COMPARISON.md) informed the clearer setup and article; it does not predict an award.
+
+## Final CI artifact
+
+Source `f7eccd89470a16b604fe50e2c0c9010cc0f470fa` passes Linux, Windows, cloud and CodeQL checks. [CI run 40088192352](https://github.com/marceli1404/sloth-mode/actions/runs/40088192352) publishes artifact `12557129275`, `SlothMode-Windows-Preview` (retained until 7 November 2026). The downloaded ZIP SHA-256 matches GitHub's artifact digest `e8bea4aec7f2f32cb514b3f53cecd32f4d21d9e35e8e6713c8ea50de92c783aa`. Its Windows x64 installer is **14,029,312 bytes**, SHA-256 `f0222e42464c2503f58b6b2c5490e410b6b20e4d36f1365597570837b2cd0032`, matching the ZIP-internal checksum. Binary structure was inspected without executing/installing the CI artifact. CI uses Go 1.26.10; the separate local build above uses Go 1.27.3 and has its own hash.

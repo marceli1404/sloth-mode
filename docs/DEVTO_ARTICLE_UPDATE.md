@@ -48,13 +48,13 @@ Model startup took **2.766 seconds** and the generation request took **14.808 se
 
 ### Trying the native path
 
-1. Get the unsigned Windows preview and its SHA-256 from the [beta download guide](https://github.com/marceli1404/sloth-mode/blob/main/docs/PUBLIC_BETA_LAUNCH.md), or build from source.
+1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40088192352)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
 2. Install the companion for your Windows account. Open **Setup & Pairing**, then pair the browser you trust.
 3. Separately approve the Gemma model and runtime download. Use fictional notes for your first plan and review the suggestions.
 
 The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/main/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
 
-On 24 October I also refined the installer. Its old preview clipped text and made it too hard to see what would happen next. The [new candidate in PR #34](https://github.com/marceli1404/sloth-mode/pull/34) separates installation, browser pairing and the optional model download, with readable status and a layout that fits the monitor. It remains a review candidate; the older beta download above is a different build.
+On 24 October I also refined the installer. Its old preview clipped text and made it too hard to see what would happen next. The [new candidate in PR #34](https://github.com/marceli1404/sloth-mode/pull/34) separates installation, browser pairing and the optional model download, with readable status and a layout that fits the monitor. The linked candidate passes Linux, Windows and cloud CI plus CodeQL checks. A full clean-profile installation and pairing run for this candidate is still pending.
 
 ![Sloth Mode's refined native Windows installer, with three setup steps, an optional sign-in launch checkbox and a primary Install & open button. The window is labelled as a layout preview with installation actions inactive.](https://raw.githubusercontent.com/marceli1404/sloth-mode/ed8d030a18973799ae40392cc7c97f0f2d34009a/docs/images/installer-preview.jpg)
 
@@ -101,7 +101,7 @@ Both sets of [recorded inputs and outputs](https://github.com/marceli1404/sloth-
 
 A local model is not useful if getting it running feels like another project. The installer refinement uses explicit font roles, consistent backgrounds and DPI-aware fitting. Installation and update work run off the UI thread, failed replacement can restore the previous app, and starting a process alone does not count as success: the installer checks the companion's local health response.
 
-The new candidate passes **12 installer tests**, connector tests, Windows builds and static analysis. Text fitting and window bounds are checked at multiple scales; the native layout, Tab focus and Escape were also inspected. Those checks do not substitute for installing the candidate on a clean profile. The [verification report](https://github.com/marceli1404/sloth-mode/blob/ed8d030a18973799ae40392cc7c97f0f2d34009a/docs/INSTALLER_REFINEMENT_2026-10-24.md) distinguishes them.
+The new candidate passes **12 installer tests**, connector tests, Windows builds and static analysis. Text fitting and window bounds are checked at multiple scales; the native layout, Tab focus and Escape were also inspected. Those checks do not substitute for installing the candidate on a clean profile. The [verification report](https://github.com/marceli1404/sloth-mode/blob/f7eccd89470a16b604fe50e2c0c9010cc0f470fa/docs/INSTALLER_REFINEMENT_2026-10-24.md) distinguishes them.
 
 ## Why Does Open Innovation Matter?
 
