@@ -4,17 +4,16 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"runtime"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -26,7 +25,7 @@ import (
 var connector []byte
 
 const (
-	wsOverlappedWindow = 0x00CF0000
+	wsOverlappedWindow = 0x00CA0000 // Caption, system menu, minimize; fixed native layout.
 	wsVisible          = 0x10000000
 	wsChild            = 0x40000000
 	wsTabstop          = 0x00010000
@@ -42,7 +41,8 @@ const (
 	idCheckUpdates     = 305
 	wmUpdateReady      = 0x8000 + 22
 	wmHardwareReady    = 0x8000 + 40
-	wmConnectorChecked = 0x8000 + 41
+	wmInstallReady     = 0x8000 + 41
+	wmConnectorChecked = 0x8000 + 42
 )
 
 type winClass struct {
@@ -64,45 +64,51 @@ type winMessage struct {
 }
 
 var (
-	user32           = syscall.NewLazyDLL("user32.dll")
-	kernel32         = syscall.NewLazyDLL("kernel32.dll")
-	gdi32            = syscall.NewLazyDLL("gdi32.dll")
-	registerClass    = user32.NewProc("RegisterClassExW")
-	createWindow     = user32.NewProc("CreateWindowExW")
-	defProc          = user32.NewProc("DefWindowProcW")
-	getMessage       = user32.NewProc("GetMessageW")
-	translateMessage = user32.NewProc("TranslateMessage")
-	dispatchMessage  = user32.NewProc("DispatchMessageW")
-	showWindow       = user32.NewProc("ShowWindow")
-	updateWindow     = user32.NewProc("UpdateWindow")
-	destroyWindow    = user32.NewProc("DestroyWindow")
-	postQuitMessage  = user32.NewProc("PostQuitMessage")
-	setWindowText    = user32.NewProc("SetWindowTextW")
-	sendMessage      = user32.NewProc("SendMessageW")
-	getFont          = gdi32.NewProc("GetStockObject")
-	messageBox       = user32.NewProc("MessageBoxW")
-	getModule        = kernel32.NewProc("GetModuleHandleW")
-	getMetrics       = user32.NewProc("GetSystemMetrics")
-	postMessage      = user32.NewProc("PostMessageW")
-	hwnd             uintptr
-	installButton    uintptr
-	statusLabel      uintptr
-	pathLabel        uintptr
-	startupButton    uintptr
-	installedPath    string
-	installed        bool
-	launchOnSignIn   bool
-	installStage     int
-	updateMu         sync.Mutex
-	pendingUpdate    updateManifest
-	updateError      error
-	updateButton     uintptr
-	graphicsLabel    uintptr
-	graphicsMu       sync.Mutex
-	graphicsText     string
-	launchMu         sync.Mutex
-	launchReport     string
-	launchOK         bool
+	user32               = syscall.NewLazyDLL("user32.dll")
+	kernel32             = syscall.NewLazyDLL("kernel32.dll")
+	gdi32                = syscall.NewLazyDLL("gdi32.dll")
+	registerClass        = user32.NewProc("RegisterClassExW")
+	createWindow         = user32.NewProc("CreateWindowExW")
+	defProc              = user32.NewProc("DefWindowProcW")
+	getMessage           = user32.NewProc("GetMessageW")
+	translateMessage     = user32.NewProc("TranslateMessage")
+	dispatchMessage      = user32.NewProc("DispatchMessageW")
+	showWindow           = user32.NewProc("ShowWindow")
+	updateWindow         = user32.NewProc("UpdateWindow")
+	destroyWindow        = user32.NewProc("DestroyWindow")
+	postQuitMessage      = user32.NewProc("PostQuitMessage")
+	setWindowText        = user32.NewProc("SetWindowTextW")
+	sendMessage          = user32.NewProc("SendMessageW")
+	getFont              = gdi32.NewProc("GetStockObject")
+	messageBox           = user32.NewProc("MessageBoxW")
+	getModule            = kernel32.NewProc("GetModuleHandleW")
+	getMetrics           = user32.NewProc("GetSystemMetrics")
+	postMessage          = user32.NewProc("PostMessageW")
+	hwnd                 uintptr
+	installButton        uintptr
+	statusLabel          uintptr
+	startupButton        uintptr
+	installedPath        string
+	installed            bool
+	launchOnSignIn       bool
+	installStage         int
+	updateMu             sync.Mutex
+	pendingUpdate        updateManifest
+	updateError          error
+	updateButton         uintptr
+	graphicsLabel        uintptr
+	graphicsMu           sync.Mutex
+	graphicsText         string
+	operationBusy        bool // UI thread owns operation state and all window updates.
+	operationCancel      context.CancelFunc
+	closeRequested       bool
+	installMu            sync.Mutex
+	pendingInstall       installResult
+	launchMu             sync.Mutex
+	launchReport         string
+	launchOK             bool
+	installerSession     uintptr
+	installerOwnsSession bool
 )
 
 func utf16(s string) uintptr {
@@ -112,16 +118,10 @@ func utf16(s string) uintptr {
 func notify(title, msg string) { messageBox.Call(hwnd, utf16(msg), utf16(title), 0x40) }
 func ctrl(typ, txt string, x, y, w, h int32, style uint32, id uintptr) uintptr {
 	instance, _, _ := getModule.Call(0)
-	hWnd, _, _ := createWindow.Call(0, utf16(typ), utf16(txt), uintptr(wsVisible|wsChild|style), uintptr(x), uintptr(y), uintptr(w), uintptr(h), hwnd, id, instance, 0)
+	hWnd, _, _ := createWindow.Call(0, utf16(typ), utf16(txt), uintptr(wsVisible|wsChild|style), uintptr(px(x)), uintptr(px(y)), uintptr(px(w)), uintptr(px(h)), hwnd, id, instance, 0)
 	if hWnd != 0 {
-		font := bodyFont
-		if len(txt) > 0 && (strings.HasPrefix(txt, "Your ") || strings.HasPrefix(txt, "A quieter")) {
-			font = titleFont
-		}
-		if strings.HasPrefix(txt, "STEP") || strings.HasPrefix(txt, "SLOTH MODE") {
-			font = smallFont
-		}
-		sendMessage.Call(hWnd, wmSetFont, font, 1)
+		controls = append(controls, controlLayout{hWnd, x, y, w, h, "body"})
+		sendMessage.Call(hWnd, wmSetFont, bodyFont, 1)
 	}
 	return hWnd
 }
@@ -131,11 +131,49 @@ func status(s string) {
 		updateWindow.Call(statusLabel)
 	}
 }
-func startChoice() string {
-	if launchOnSignIn {
-		return "[x] Launch at Windows sign-in (optional)"
+func startChoice() string { return "Launch at Windows sign-in (optional)" }
+
+// Keep concurrent checks, downloads and installs from sharing result slots.
+func beginOperation() bool {
+	if operationBusy {
+		return false
 	}
-	return "[ ] Launch at Windows sign-in (optional)"
+	operationBusy = true
+	for _, control := range []uintptr{installButton, updateButton, startupButton} {
+		user32.NewProc("EnableWindow").Call(control, 0)
+	}
+	return true
+}
+func finishOperation() bool {
+	if operationCancel != nil {
+		operationCancel()
+		operationCancel = nil
+	}
+	operationBusy = false
+	for _, control := range []uintptr{installButton, updateButton, startupButton} {
+		enabled := uintptr(1)
+		if control == startupButton && installed {
+			enabled = 0
+		}
+		user32.NewProc("EnableWindow").Call(control, enabled)
+	}
+	refreshInstallerStage()
+	if closeRequested {
+		destroyWindow.Call(hwnd)
+		return true
+	}
+	return false
+}
+func requestClose() {
+	if operationBusy {
+		closeRequested = true
+		if operationCancel != nil {
+			operationCancel()
+		}
+		status("Closing after the current operation finishes...")
+		return
+	}
+	destroyWindow.Call(hwnd)
 }
 
 func appTarget() (string, error) {
@@ -161,7 +199,9 @@ func makeShortcut(exe string) error {
 		"$s.TargetPath=" + psQuote(exe) + ";" +
 		"$s.WorkingDirectory=" + psQuote(filepath.Dir(exe)) + ";" +
 		"$s.Description='Sloth Mode local AI connector';$s.Save()"
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -171,7 +211,9 @@ func makeShortcut(exe string) error {
 }
 func priorStartupEnabled() bool {
 	const key = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-	cmd := exec.Command("reg.exe", "QUERY", key, "/v", "SlothModeConnector")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "reg.exe", "QUERY", key, "/v", "SlothModeConnector")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	out, err := cmd.Output()
 	return err == nil && strings.Contains(strings.ToLower(string(out)), "slothmodeconnector")
@@ -179,108 +221,104 @@ func priorStartupEnabled() bool {
 
 func changeStartup(exe string, enabled bool) error {
 	const key = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var cmd *exec.Cmd
 	if enabled {
-		cmd = exec.Command("reg.exe", "ADD", key, "/v", "SlothModeConnector", "/t", "REG_SZ", "/d", `"`+exe+`"`, "/f")
+		cmd = exec.CommandContext(ctx, "reg.exe", "ADD", key, "/v", "SlothModeConnector", "/t", "REG_SZ", "/d", `"`+exe+`"`, "/f")
 	} else {
-		cmd = exec.Command("reg.exe", "DELETE", key, "/v", "SlothModeConnector", "/f")
+		cmd = exec.CommandContext(ctx, "reg.exe", "DELETE", key, "/v", "SlothModeConnector", "/f")
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	return cmd.Run()
 }
-func install() error {
+
+type installResult struct {
+	path, warning string
+	err           error
+}
+
+func install() (string, error) {
 	dest, err := appTarget()
 	if err != nil {
-		return err
+		return "", err
 	}
-	// Never clobber a running connector. Windows will not safely replace it.
 	if c, e := net.DialTimeout("tcp4", "127.0.0.1:39871", 250*time.Millisecond); e == nil {
 		c.Close()
-		return fmt.Errorf("Sloth Mode is running. Exit it from the tray or Task Manager before updating.")
+		return "", fmt.Errorf("Port 39871 is in use. Exit Sloth Mode from the tray or Task Manager before updating. If it is already closed, another app may be using that port.")
 	}
-	if len(connector) < 1_000_000 {
-		return fmt.Errorf("embedded application is missing")
+	if err := installApplication(dest, connector); err != nil {
+		return "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(dest), 0700); err != nil {
-		return err
-	}
-	// Never write to the previous app's private notes / keys, only to Program files.
-	newPath := dest + ".new"
-	if err := os.WriteFile(newPath, connector, 0700); err != nil {
-		return err
-	}
-	defer os.Remove(newPath)
-	data, err := os.ReadFile(newPath)
-	if err != nil {
-		return err
-	}
-	if sha256.Sum256(data) != sha256.Sum256(connector) {
-		return fmt.Errorf("installed executable did not pass integrity check")
-	}
-	// Preserve the last installed binary until the new version is in place.
-	backup := dest + ".previous"
-	hadOld := false
-	if _, statErr := os.Stat(dest); statErr == nil {
-		_ = os.Remove(backup)
-		if e := os.Rename(dest, backup); e != nil {
-			return fmt.Errorf("close the old connector before upgrading: %w", e)
-		}
-		hadOld = true
-	}
-	if err := os.Rename(newPath, dest); err != nil {
-		if hadOld {
-			_ = os.Rename(backup, dest)
-		}
-		return fmt.Errorf("installation failed; previous version restored: %w", err)
-	}
-	if hadOld {
-		_ = os.Remove(backup)
-	}
-	installedPath = dest
-	installed = true
-	return nil
+	return dest, nil
 }
 func beginInstall() {
+	if !beginOperation() {
+		return
+	}
 	installStage = 1
-	updateWindow.Call(hwnd)
+	refreshInstallerStage()
 	status("Installing Sloth Mode for your Windows account...")
 	setWindowText.Call(installButton, utf16("Installing..."))
-	err := install()
-	if err != nil {
-		status("Installation failed. Previous local notes were not touched.")
-		notify("Install error", err.Error())
+	startup := launchOnSignIn
+	go func() {
+		path, err := install()
+		result := installResult{path: path, err: err}
+		if err == nil {
+			if e := makeShortcut(path); e != nil {
+				result.warning = "Start menu shortcut not created; app is installed. "
+			}
+			if startup {
+				if e := changeStartup(path, true); e != nil {
+					result.warning += "Could not enable launch at sign-in. "
+				}
+			} else if priorStartupEnabled() {
+				if e := changeStartup(path, false); e != nil {
+					result.warning += "Could not remove the previous launch at sign-in setting. "
+				}
+			}
+		}
+		installMu.Lock()
+		pendingInstall = result
+		installMu.Unlock()
+		postMessage.Call(hwnd, wmInstallReady, 0, 0)
+	}()
+}
+func finishInstall() {
+	installMu.Lock()
+	result := pendingInstall
+	installMu.Unlock()
+	if finishOperation() {
+		return
+	}
+	if result.err != nil {
+		installStage = 0
+		refreshInstallerStage()
+		status("Installation failed. Your notes were not changed.")
+		notify("Install error", result.err.Error())
 		setWindowText.Call(installButton, utf16("Try again"))
 		return
 	}
-	warning := ""
-	if e := makeShortcut(installedPath); e != nil {
-		warning = "Start menu shortcut not created; app is installed. "
-	}
-	if launchOnSignIn {
-		// Migrate any old Downloads-path startup entry to the installed program.
-		if e := changeStartup(installedPath, true); e != nil {
-			warning += "Could not enable launch at sign-in. "
-		}
-	} else if priorStartupEnabled() {
-		// The user explicitly deselected startup; remove the old entry.
-		if e := changeStartup(installedPath, false); e != nil {
-			warning += "Could not remove the previous launch at sign-in setting. "
-		}
-	}
+	installedPath, installed = result.path, true
+	user32.NewProc("EnableWindow").Call(startupButton, 0)
 	installStage = 2
-	updateWindow.Call(hwnd)
-	status("Installed successfully — opening your pairing window...")
+	refreshInstallerStage()
 	setWindowText.Call(installButton, utf16("Open pairing window"))
 	launchInstalled()
-	if warning != "" {
-		notify("Installed with notice", warning)
+	if result.warning != "" {
+		notify("Installed with notice", result.warning)
 	}
 }
 func beginCheckUpdates() {
+	if !beginOperation() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	operationCancel = cancel
+	setWindowText.Call(stepLabel, utf16("CHECKING UPDATES"))
 	status("Checking the signed update channel...")
 	setWindowText.Call(updateButton, utf16("Checking..."))
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
 		m, e := fetchUpdate(ctx)
 		updateMu.Lock()
@@ -291,35 +329,46 @@ func beginCheckUpdates() {
 	}()
 }
 func finishCheckUpdates() {
+	if closeRequested {
+		finishOperation()
+		return
+	}
 	updateMu.Lock()
 	m, e := pendingUpdate, updateError
 	updateMu.Unlock()
 	setWindowText.Call(updateButton, utf16("Check updates"))
 	if e != nil {
+		finishOperation()
 		status("Could not verify updates. Your installed connector is unchanged.")
 		notify("Updater", e.Error())
 		return
 	}
 	newer, e := newerVersion(installerVersion, m.Version)
 	if e != nil || !newer {
-		status("You're up to date. Signed channel: " + installerVersion)
+		finishOperation()
+		status("No newer update in the signed channel (" + m.Version + "). This installer: " + installerVersion + ".")
 		return
 	}
 	answer, _, _ := messageBox.Call(hwnd, utf16("Signed update "+m.Version+" is available. Download and run the verified installer?\n\nThe existing connector and your notes will not be replaced until you approve the installer."), utf16("Sloth Mode update"), 0x24) // MB_ICONQUESTION | MB_YESNO
 	if answer != 6 {
+		finishOperation()
+		status("Update skipped. Your installed connector is unchanged.")
 		return
 	}
+	setWindowText.Call(stepLabel, utf16("DOWNLOADING UPDATE"))
 	status("Downloading and validating the update...")
 	setWindowText.Call(updateButton, utf16("Downloading..."))
+	if operationCancel != nil {
+		operationCancel()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	operationCancel = cancel
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 		defer cancel()
 		path, downloadErr := downloadInstaller(ctx, m)
 		updateMu.Lock()
 		updateError = downloadErr
-		if downloadErr == nil {
-			updateDownloadPath = path
-		}
+		updateDownloadPath = path
 		updateMu.Unlock()
 		postMessage.Call(hwnd, wmDownloadReady, 0, 0)
 	}()
@@ -333,56 +382,98 @@ func finishDownload() {
 	updateMu.Lock()
 	path, e := updateDownloadPath, updateError
 	updateMu.Unlock()
+	if finishOperation() {
+		discardDownloadedInstaller(path)
+		return
+	}
 	setWindowText.Call(updateButton, utf16("Check updates"))
 	if e != nil {
 		status("Update not installed; verification failed.")
 		notify("Updater", e.Error())
+		discardDownloadedInstaller(path)
 		return
 	}
+	// Let the verified successor take the session before starting it. Keeping
+	// our singleton lock here would make every downloaded installer reject itself.
+	releaseInstallerSession()
 	if e := runVerifiedInstaller(path); e != nil {
+		wait, _, _ := kernel32.NewProc("WaitForSingleObject").Call(installerSession, 0)
+		installerOwnsSession = wait == 0 || wait == 0x80
 		status("Verified update could not launch.")
 		notify("Updater", e.Error())
+		discardDownloadedInstaller(path)
+		if !installerOwnsSession {
+			destroyWindow.Call(hwnd)
+		}
 		return
 	}
-	status("Verified update installer opened. Close your running connector when prompted.")
+	destroyWindow.Call(hwnd)
 }
+
+func discardDownloadedInstaller(path string) {
+	if path != "" {
+		_ = os.Remove(path)
+		_ = os.Remove(filepath.Dir(path)) // Only the now-empty download directory.
+	}
+}
+
+func releaseInstallerSession() {
+	if installerOwnsSession {
+		kernel32.NewProc("ReleaseMutex").Call(installerSession)
+		installerOwnsSession = false
+	}
+}
+
 // Poll the real localhost health route; starting a process is not proof it is ready.
 // Work and process waiting are background-only, and UI changes use WM_APP messages.
 func probeLocalCompanion() bool {
 	return probeCompanionHealth(&http.Client{Timeout: 500 * time.Millisecond}, "http://127.0.0.1:39871/v1/health")
 }
+
 // A listening port alone cannot establish that this is our connector.
 func probeCompanionHealth(client *http.Client, url string) bool {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil { return false }
+	if err != nil {
+		return false
+	}
 	req.Header.Set("Origin", "https://sloth.marceli.dev")
 	resp, err := client.Do(req)
-	if err != nil { return false }
+	if err != nil {
+		return false
+	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Content-Type"), "application/json") { return false }
-	var body struct { OK bool `json:"ok"`; Name string `json:"name"` }
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 2048)).Decode(&body); err != nil { return false }
+	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+		return false
+	}
+	var body struct {
+		OK   bool   `json:"ok"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 2048)).Decode(&body); err != nil {
+		return false
+	}
 	return body.OK && body.Name == "Sloth Mode Connector"
 }
 func launchInstalled() {
 	connection, err := net.DialTimeout("tcp4", "127.0.0.1:39871", 350*time.Millisecond)
 	if err == nil {
 		_ = connection.Close()
-		status("Another connector is already running. Close it before opening the updated version.")
+		status("A companion is already running. Open its Setup & Pairing window from the tray.")
 		notify("Previous connector is still running", "Exit the old Sloth Mode connector from the tray or Task Manager, then click Open pairing window. Local notes and keys are preserved.")
 		return
 	}
 	status("Starting connector and checking its local service…")
 	cmd := exec.Command(installedPath)
 	if e := cmd.Start(); e != nil {
-		status("Windows could not launch the connector. Check security prompts.")
+		finishOperation()
+		status("Windows could not launch the companion. Check security prompts.")
 		notify("Launch error", "The application could not start: "+e.Error())
 		return
 	}
 	owner := hwnd
 	go func() {
 		exited := make(chan error, 1)
-		go func(){ exited <- cmd.Wait() }()
+		go func() { exited <- cmd.Wait() }()
 		ticker := time.NewTicker(250 * time.Millisecond)
 		defer ticker.Stop()
 		timer := time.NewTimer(10 * time.Second)
@@ -392,7 +483,11 @@ func launchInstalled() {
 		for !ready {
 			select {
 			case err := <-exited:
-				if err != nil { report = "Connector exited during startup: " + err.Error() + ". Check connector.log." } else { report = "Connector exited before pairing was ready. Check connector.log." }
+				if err != nil {
+					report = "Connector exited during startup: " + err.Error() + ". Check connector.log."
+				} else {
+					report = "Connector exited before pairing was ready. Check connector.log."
+				}
 				goto finished
 			case <-ticker.C:
 				if probeLocalCompanion() {
@@ -423,21 +518,35 @@ func openFolder() {
 
 var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 	switch msg {
+	case 0x02E0: // WM_DPICHANGED; keep all controls within this monitor.
+		resizeForDPI(uint32(w&0xffff), monitorWorkArea(h))
+		return 0
 	case wmPaint:
 		paintBackground(h)
 		return 0
 	case wmEraseBkgnd:
 		return 1
-	case wmCtlColorStatic:
-		return setStaticColors(w)
+	case wmCtlColorStatic, 0x0135: // WM_CTLCOLORBTN for the native checkbox.
+		return setStaticColors(w, l)
 	case wmDrawItem:
 		return paintButton(l)
+	case wmInstallReady:
+		finishInstall()
+		return 0
 	case wmConnectorChecked:
+		if finishOperation() {
+			return 0
+		}
 		launchMu.Lock()
 		report, ready := launchReport, launchOK
 		launchMu.Unlock()
 		status(report)
-		if !ready { notify("Connector startup", report) }
+		if ready {
+			installStage = 3
+			refreshInstallerStage()
+		} else {
+			notify("Connector startup", report)
+		}
 		return 0
 	case wmHardwareReady:
 		graphicsMu.Lock()
@@ -453,25 +562,35 @@ var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 		return 0
 	case wmCommand:
 		switch uint16(w & 0xffff) {
-		case idInstall:
+		case idInstall, 1: // IDOK from keyboard dialog navigation.
+			if operationBusy {
+				return 0
+			}
 			if installed {
 				launchInstalled()
 			} else {
 				beginInstall()
 			}
-		case idClose:
-			destroyWindow.Call(h)
+		case idClose, 2: // IDCANCEL (Escape).
+			requestClose()
 		case idOpenLocation:
 			openFolder()
 		case idCheckUpdates:
 			beginCheckUpdates()
 		case idStartup:
+			if operationBusy {
+				return 0
+			}
 			launchOnSignIn = !launchOnSignIn
-			setWindowText.Call(startupButton, utf16(startChoice()))
+			checked := uintptr(0)
+			if launchOnSignIn {
+				checked = 1
+			}
+			sendMessage.Call(startupButton, 0x00F1, checked, 0)
 		}
 		return 0
 	case wmClose:
-		destroyWindow.Call(h)
+		requestClose()
 		return 0
 	case wmDestroy:
 		postQuitMessage.Call(0)
@@ -482,65 +601,79 @@ var wndproc = syscall.NewCallback(func(h, msg, w, l uintptr) uintptr {
 })
 
 func main() {
-	// A Win32 window and its GetMessage loop must stay on the creating OS thread.
-	// A normal Go goroutine can otherwise migrate to a different OS thread.
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+	// A second installer must not race the first while replacing the same app.
+	mutex, err := acquireInstallerSession(`Local\SlothModeInstaller`)
+	if err != nil {
+		notify("Sloth Mode", err.Error())
+		return
+	}
+	defer kernel32.NewProc("CloseHandle").Call(mutex)
+	installerSession, installerOwnsSession = mutex, true
+	defer releaseInstallerSession()
+	if err := createInstallerUI(); err != nil {
+		notify("Sloth Mode", err.Error())
+		return
+	}
+	defer releaseTheme()
+	runMessageLoop()
+}
+
+func createInstallerUI() error {
+	// Prefer per-monitor DPI v2. Fallback keeps Windows bitmap scaling available.
+	aware := user32.NewProc("SetProcessDpiAwarenessContext")
+	if aware.Find() == nil {
+		aware.Call(^uintptr(3))
+	}
+	dpi := uint32(96)
+	probe := user32.NewProc("GetDpiForSystem")
+	if probe.Find() == nil {
+		d, _, _ := probe.Call()
+		if d > 0 {
+			dpi = uint32(d)
+		}
+	}
+	work := monitorWorkArea(0)
+	uiScale = fittedScale(dpi, work)
 	makeTheme()
 	instance, _, _ := getModule.Call(0)
 	cls := "SlothModeInstallWindow"
-	wc := winClass{Size: uint32(unsafe.Sizeof(winClass{})), WndProc: wndproc, Instance: instance, ClassName: utf16(cls), Background: 6}
-	if r, _, _ := registerClass.Call(uintptr(unsafe.Pointer(&wc))); r == 0 {
-		notify("Sloth Mode", "Cannot create installer window.")
-		return
+	cursor, _, _ := user32.NewProc("LoadCursorW").Call(0, 32512)
+	wc := winClass{Size: uint32(unsafe.Sizeof(winClass{})), WndProc: wndproc, Instance: instance, Cursor: cursor, Icon: brandIcon, SmallIcon: brandIcon, ClassName: utf16(cls), Background: backgroundBrush}
+	if r, _, e := registerClass.Call(uintptr(unsafe.Pointer(&wc))); r == 0 {
+		return fmt.Errorf("cannot create installer window: %v", e)
 	}
-	sx, _, _ := getMetrics.Call(0)
-	sy, _, _ := getMetrics.Call(1)
-	x, y := int32(90), int32(90)
-	if sx > 800 {
-		x = (int32(sx) - 760) / 2
-	}
-	if sy > 760 {
-		y = (int32(sy) - 715) / 2
-	}
-	h, _, _ := createWindow.Call(0, utf16(cls), utf16("Sloth Mode • Setup"), wsOverlappedWindow, uintptr(x), uintptr(y), 760, 715, 0, 0, instance, 0)
+	r := windowBounds(work, dpi)
+	h, _, e := createWindow.Call(0x10000, utf16(cls), utf16("Sloth Mode - Setup"), wsOverlappedWindow, uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(r.Bottom-r.Top), 0, 0, instance, 0)
 	if h == 0 {
-		notify("Sloth Mode", "Could not open installer window.")
-		return
+		return fmt.Errorf("could not open installer: %v", e)
 	}
 	hwnd = h
-	ctrl("STATIC", "SLOTH MODE "+installerVersion+"   /   DESKTOP COMPANION", 42, 30, 480, 26, 0, 0)
-	ctrl("STATIC", "A quieter way to get things done.", 42, 74, 590, 47, 0, 0)
-	ctrl("STATIC", "Your own Gemma AI, running on this Windows PC.", 42, 130, 555, 26, 0, 0)
-	ctrl("STATIC", "STEP 01   LOCAL-FIRST INSTALL", 42, 219, 625, 23, 0, 0)
-	ctrl("STATIC", "Your private companion stays in the notification area.", 42, 250, 625, 27, 0, 0)
-	ctrl("STATIC", "STEP 02   PAIR ONCE", 42, 301, 625, 23, 0, 0)
-	ctrl("STATIC", "Each trusted browser gets its own key; you can revoke it.", 42, 331, 625, 28, 0, 0)
-	ctrl("STATIC", "STEP 03   OPTIONAL GEMMA", 42, 365, 625, 25, 0, 0)
-	ctrl("STATIC", "Download the model only when you're ready. No Ollama needed.", 42, 391, 625, 25, 0, 0)
-	ctrl("STATIC", installerRecommendation(), 42, 418, 650, 24, 0, 0)
-	graphicsLabel = ctrl("STATIC", "Detecting graphics hardware locally...", 42, 440, 650, 22, 0, 0)
+	launchOnSignIn = priorStartupEnabled()
+	buildInstallerControls()
 	go func() {
 		name := installerGPUName()
 		graphicsMu.Lock()
 		graphicsText = name
 		graphicsMu.Unlock()
-		postMessage.Call(hwnd, wmHardwareReady, 0, 0)
+		postMessage.Call(h, wmHardwareReady, 0, 0)
 	}()
-	launchOnSignIn = priorStartupEnabled()
-	startupButton = ctrl("BUTTON", startChoice(), 42, 478, 430, 37, wsTabstop|bsOwnerDraw, idStartup)
-	statusLabel = ctrl("STATIC", "Ready to install. Existing local notes stay untouched.", 42, 520, 665, 24, 0, 0)
-	installButton = ctrl("BUTTON", "Install & open", 42, 562, 232, 42, wsTabstop|bsOwnerDraw, idInstall)
-	ctrl("BUTTON", "Open app folder", 287, 562, 210, 42, wsTabstop|bsOwnerDraw, idOpenLocation)
-	updateButton = ctrl("BUTTON", "Check updates", 509, 562, 210, 42, wsTabstop|bsOwnerDraw, idCheckUpdates)
-	ctrl("BUTTON", "Close", 509, 614, 210, 36, wsTabstop|bsOwnerDraw, idClose)
 	showWindow.Call(hwnd, swShow)
 	updateWindow.Call(hwnd)
+	user32.NewProc("SetFocus").Call(installButton)
+	return nil
+}
+
+func runMessageLoop() {
 	var message winMessage
 	for {
 		r, _, _ := getMessage.Call(uintptr(unsafe.Pointer(&message)), 0, 0, 0)
 		if int32(r) <= 0 {
 			break
+		}
+		if handled, _, _ := user32.NewProc("IsDialogMessageW").Call(hwnd, uintptr(unsafe.Pointer(&message))); handled != 0 {
+			continue
 		}
 		translateMessage.Call(uintptr(unsafe.Pointer(&message)))
 		dispatchMessage.Call(uintptr(unsafe.Pointer(&message)))

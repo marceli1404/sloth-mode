@@ -1,0 +1,8 @@
+{
+  "corpus_id": "sloth18-2026-10-21-v1",
+  "frozen_before_inference": "2026-10-21T18:24:09.9497302Z",
+  "sha256": "F69D20ED172E7531C634850EC578F12153A6E3B25549BD6BCAAFE7E62B598CF2",
+  "source_commit": "147b0c90579a949dfd47df7dadfc3023e92c5145",
+  "batch_size": 4,
+  "input_count": 12
+}

@@ -1,0 +1,451 @@
+{
+  "inputs": [
+    "Email the lab report before 4 PM today.",
+    "Read a chapter of a novel when I have time.",
+    "I already submitted the signed club form. Nothing else is needed.",
+    "The borrowed travel guide is due tomorrow. Return it to the library."
+  ],
+  "actual_model_tasks": [
+    {
+      "id": 1,
+      "text": "Email the lab report before 4 PM today.",
+      "created": "2026-10-24T12:31:09+01:00",
+      "priority": "now",
+      "category": "work",
+      "summary": "Email lab report",
+      "next_action": "Email the lab report",
+      "completed": false
+    },
+    {
+      "id": 2,
+      "text": "Read a chapter of a novel when I have time.",
+      "created": "2026-10-24T12:31:10+01:00",
+      "priority": "later",
+      "category": "learning",
+      "summary": "Read novel chapter",
+      "next_action": "Read a chapter of the novel",
+      "completed": false
+    },
+    {
+      "id": 3,
+      "text": "I already submitted the signed club form. Nothing else is needed.",
+      "created": "2026-10-24T12:31:10+01:00",
+      "priority": "no_action",
+      "category": "admin",
+      "summary": "Club form submitted",
+      "next_action": "No action needed",
+      "completed": false
+    },
+    {
+      "id": 4,
+      "text": "The borrowed travel guide is due tomorrow. Return it to the library.",
+      "created": "2026-10-24T12:31:11+01:00",
+      "priority": "now",
+      "category": "personal",
+      "summary": "Return travel guide",
+      "next_action": "Return the travel guide to the library",
+      "completed": false
+    }
+  ],
+  "status": "Gemma ready. Gemma drafted 4 tasks locally. Review the suggestions before acting. Timing was omitted from suggestions for #1, #4; check their original notes.",
+  "inference_plus_ui_poll_seconds": 25.063,
+  "recording_seconds": 40.734,
+  "network_requests": [
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "status": 200,
+      "signed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pair",
+      "status": 201,
+      "signed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/integrations",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hardware",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/integrations",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hardware",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tasks",
+      "status": 201,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tasks",
+      "status": 201,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tasks",
+      "status": 201,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tasks",
+      "status": 201,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/plan",
+      "status": 202,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/tasks/edit",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "status": 200,
+      "signed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/tasks",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/status",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/integrations",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hardware",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/integrations",
+      "status": 200,
+      "signed": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hardware",
+      "status": 200,
+      "signed": true
+    }
+  ],
+  "blocked_browser_requests": [],
+  "page_errors": [],
+  "checks": {
+    "real_browser_pairing": true,
+    "signed_task_and_plan_requests": true,
+    "real_local_gemma_output": true,
+    "original_text_preserved": true,
+    "edit_clears_old_annotations": true,
+    "export_preserves_source": true,
+    "reload_retains_pairing_and_notes": true
+  },
+  "limits": [
+    "Isolated validation origin/ports and synthetic data",
+    "Four CPU threads and zero GPU layers in fixture only",
+    "Existing verified model/runtime; no installation filmed",
+    "Browser egress restricted to loopback; machine-wide offline state not established",
+    "No human time-saving measurement"
+  ]
+}

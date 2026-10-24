@@ -35,9 +35,9 @@ func installerRecommendation() string {
 		quant = "Q5_K_M"
 	}
 	if gb > 0 {
-		return fmt.Sprintf("Detected: %.0f GB RAM · %d CPU threads — Gemma %s suggested", gb, runtime.NumCPU(), quant)
+		return fmt.Sprintf("%.0f GB RAM\n%d CPU threads\nSuggested: %s", gb, runtime.NumCPU(), quant)
 	}
-	return fmt.Sprintf("Detected: %d CPU threads — Gemma Q4_K_M suggested", runtime.NumCPU())
+	return fmt.Sprintf("%d CPU threads\nGemma Q4_K_M suggested", runtime.NumCPU())
 }
 
 // GPU details may be delayed; query off the installer UI thread.
@@ -48,14 +48,18 @@ func installerGPUName() string {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	b, err := cmd.Output()
 	if err != nil {
-		return "Graphics: Windows did not report a GPU (CPU mode is available)."
+		return formatInstallerGPU("")
 	}
-	name := strings.TrimSpace(string(b))
-	if len(name) > 70 {
-		name = name[:70]
+	return formatInstallerGPU(string(b))
+}
+
+func formatInstallerGPU(name string) string {
+	letters := []rune(strings.TrimSpace(name))
+	if len(letters) == 0 {
+		return "Graphics not reported.\nCPU mode available."
 	}
-	if name == "" {
-		return "Graphics: Not reported by Windows."
+	if len(letters) > 30 {
+		letters = append(letters[:27], '.', '.', '.')
 	}
-	return "Graphics: " + name + " (Vulkan optional)"
+	return "Graphics\n" + string(letters) + "\nCPU mode available."
 }

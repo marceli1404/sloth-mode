@@ -1,0 +1,130 @@
+{
+  "corpus_id": "sloth-20261024-fresh-v1",
+  "os": "windows",
+  "arch": "amd64",
+  "backend": "cpu",
+  "quant": "Q4_K_M",
+  "startup": "3.336s",
+  "batches": [
+    {
+      "batch": 1,
+      "ids": [
+        201,
+        202,
+        203,
+        204
+      ],
+      "elapsed": "19.13s",
+      "items": [
+        {
+          "id": 201,
+          "priority": "now",
+          "category": "work",
+          "summary": "Email lab report",
+          "next_action": "Email lab report"
+        },
+        {
+          "id": 202,
+          "priority": "later",
+          "category": "personal",
+          "summary": "Pay council tax",
+          "next_action": "Pay council tax"
+        },
+        {
+          "id": 203,
+          "priority": "now",
+          "category": "learning",
+          "summary": "Return travel guide",
+          "next_action": "Return travel guide to library"
+        },
+        {
+          "id": 204,
+          "priority": "now",
+          "category": "work",
+          "summary": "Book boiler repair",
+          "next_action": "Book boiler repair"
+        }
+      ]
+    },
+    {
+      "batch": 2,
+      "ids": [
+        205,
+        206,
+        207,
+        208
+      ],
+      "elapsed": "15.661s",
+      "items": [
+        {
+          "id": 205,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Learn beginner watercolor exercise",
+          "next_action": "Find a beginner watercolor exercise tutorial"
+        },
+        {
+          "id": 206,
+          "priority": "later",
+          "category": "work",
+          "summary": "Compare bicycle locks",
+          "next_action": "Research two bicycle locks"
+        },
+        {
+          "id": 207,
+          "priority": "no_action",
+          "category": "admin",
+          "summary": "Club form submitted",
+          "next_action": "None"
+        },
+        {
+          "id": 208,
+          "priority": "no_action",
+          "category": "other",
+          "summary": "Community hall entrance location",
+          "next_action": "None"
+        }
+      ]
+    },
+    {
+      "batch": 3,
+      "ids": [
+        209,
+        210,
+        211,
+        212
+      ],
+      "elapsed": "19.309s",
+      "items": [
+        {
+          "id": 209,
+          "priority": "later",
+          "category": "personal",
+          "summary": "Landlord - Rent receipt",
+          "next_action": "Email landlord"
+        },
+        {
+          "id": 210,
+          "priority": "now",
+          "category": "work",
+          "summary": "Stair light",
+          "next_action": "Call caretaker"
+        },
+        {
+          "id": 211,
+          "priority": "no_action",
+          "category": "learning",
+          "summary": "Quoted attack",
+          "next_action": "Research quoted attack"
+        },
+        {
+          "id": 212,
+          "priority": "no_action",
+          "category": "personal",
+          "summary": "Paint purchase",
+          "next_action": "Defer paint purchase"
+        }
+      ]
+    }
+  ]
+}

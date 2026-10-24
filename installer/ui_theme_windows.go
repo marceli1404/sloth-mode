@@ -3,6 +3,8 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/binary"
 	"syscall"
 	"unsafe"
 )
@@ -41,32 +43,58 @@ var (
 	selectObj    = brushDLL.NewProc("SelectObject")
 	deleteObj    = brushDLL.NewProc("DeleteObject")
 	createPen    = brushDLL.NewProc("CreatePen")
-	ellipse      = brushDLL.NewProc("Ellipse")
 	setBkMode    = brushDLL.NewProc("SetBkMode")
 	setTextColor = brushDLL.NewProc("SetTextColor")
 	drawText     = user32.NewProc("DrawTextW")
+	drawFocus    = user32.NewProc("DrawFocusRect")
 	createFont   = brushDLL.NewProc("CreateFontW")
 )
 
 func rgb(r, g, b byte) uintptr { return uintptr(uint32(r) | uint32(g)<<8 | uint32(b)<<16) }
 
-var backgroundBrush, panelBrush uintptr
-var titleFont, bodyFont, smallFont uintptr
+//go:embed brand.ico
+var brandICO []byte
+var brandIcon uintptr
+
+var cream = rgb(247, 246, 237)
+var forest = rgb(32, 63, 49)
+var ink = rgb(35, 55, 44)
+var muted = rgb(90, 103, 88)
+var sage = rgb(230, 235, 218)
+var backgroundBrush, panelBrush, statusBrush uintptr
+var titleFont, headingFont, bodyFont, smallFont uintptr
 
 func makeTheme() {
-	backgroundBrush, _, _ = createBrush.Call(rgb(14, 35, 31))
-	panelBrush, _, _ = createBrush.Call(rgb(14, 35, 31))
-	titleFont = createSegoe(29, true)
-	bodyFont = createSegoe(16, false)
-	smallFont = createSegoe(14, false)
+	brandIcon = loadBrandIcon()
+	backgroundBrush, _, _ = createBrush.Call(cream)
+	panelBrush, _, _ = createBrush.Call(forest)
+	statusBrush, _, _ = createBrush.Call(sage)
+	makeFonts()
 }
-func createSegoe(size int32, bold bool) uintptr {
+func makeFonts() {
+	titleFont = makeFont("Georgia", 33, false)
+	headingFont = makeFont("Segoe UI", 18, true)
+	bodyFont = makeFont("Segoe UI", 16, false)
+	smallFont = makeFont("Segoe UI", 14, false)
+}
+func makeFont(name string, size int32, bold bool) uintptr {
 	weight := uintptr(400)
 	if bold {
-		weight = 700
+		weight = 600
 	}
-	f, _, _ := createFont.Call(uintptr(uint32(-size)), 0, 0, 0, weight, 0, 0, 0, 0, 0, 0, 0, 0, utf16("Segoe UI"))
+	f, _, _ := createFont.Call(uintptr(uint32(-px(size))), 0, 0, 0, weight, 0, 0, 0, 0, 0, 0, 5, 0, utf16(name))
 	return f
+}
+func releaseTheme() {
+	if brandIcon != 0 {
+		user32.NewProc("DestroyIcon").Call(brandIcon)
+		brandIcon = 0
+	}
+	for _, handle := range []uintptr{backgroundBrush, panelBrush, statusBrush, titleFont, headingFont, bodyFont, smallFont} {
+		if handle != 0 {
+			deleteObj.Call(handle)
+		}
+	}
 }
 func paintBackground(h uintptr) {
 	var ps paintStruct
@@ -75,89 +103,114 @@ func paintBackground(h uintptr) {
 		return
 	}
 	defer paintEnd.Call(h, uintptr(unsafe.Pointer(&ps)))
-	base, _, _ := createBrush.Call(rgb(14, 35, 31))
-	fillRect.Call(hdc, uintptr(unsafe.Pointer(&rectWin{0, 0, 760, 680})), base)
-	deleteObj.Call(base)
-	// Soft block composition. Real native GDI, no browser or web view.
-	drawRound(hdc, 20, 15, 738, 182, rgb(31, 75, 60), 0)
-	drawRound(hdc, 20, 198, 738, 467, rgb(23, 53, 46), 0)
-	drawRound(hdc, 20, 470, 738, 688, rgb(21, 48, 41), 0)
-	// Sloth mark: warm cream silhouette on the top-right, with gentle leaf detail.
-	outlinePen := mkPen(rgb(31, 75, 60))
-	oldPen, _, _ := selectObj.Call(hdc, outlinePen)
-	face, _, _ := createBrush.Call(rgb(218, 232, 188))
-	oldBrush, _, _ := selectObj.Call(hdc, face)
-	ellipse.Call(hdc, uintptr(int32(645)), uintptr(int32(46)), uintptr(int32(709)), uintptr(int32(118)))
-	eye, _, _ := createBrush.Call(rgb(39, 76, 57))
-	selectObj.Call(hdc, eye)
-	ellipse.Call(hdc, 662, 78, 670, 87)
-	ellipse.Call(hdc, 686, 78, 694, 87)
-	nose, _, _ := createBrush.Call(rgb(130, 91, 69))
-	selectObj.Call(hdc, nose)
-	ellipse.Call(hdc, 675, 91, 681, 97)
-	selectObj.Call(hdc, oldBrush)
-	selectObj.Call(hdc, oldPen)
-	deleteObj.Call(face)
-	deleteObj.Call(eye)
-	deleteObj.Call(nose)
-	deleteObj.Call(outlinePen)
-	// Three discrete progress milestones; Stage 1 -> 2 -> 3.
-	for i := 0; i < 3; i++ {
-		col := rgb(60, 91, 77)
-		if i <= installStage {
-			col = rgb(159, 220, 161)
-		}
-		drawRound(hdc, int32(40+i*78), 668, int32(98+i*78), 675, col, 0)
+	fillRect.Call(hdc, uintptr(unsafe.Pointer(&ps.RcPaint)), backgroundBrush)
+	r := rectWin{0, 0, px(220), px(clientHeight)}
+	fillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), panelBrush)
+	drawRound(hdc, 252, 441, 784, 521, sage)
+	if brandIcon != 0 {
+		user32.NewProc("DrawIconEx").Call(hdc, uintptr(px(28)), uintptr(px(75)), brandIcon, uintptr(px(72)), uintptr(px(72)), 0, 0, 3)
 	}
+	r = rectWin{px(252), px(396), px(784), px(397)}
+	brush, _, _ := createBrush.Call(rgb(215, 220, 205))
+	fillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), brush)
+	deleteObj.Call(brush)
 }
 func mkPen(col uintptr) uintptr { p, _, _ := createPen.Call(0, 1, col); return p }
-func drawRound(hdc uintptr, x, y, x2, y2 int32, fill uintptr, border uintptr) {
+func drawRound(hdc uintptr, x, y, x2, y2 int32, fill uintptr) {
+	drawRoundPixels(hdc, rectWin{px(x), px(y), px(x2), px(y2)}, fill)
+}
+func drawRoundPixels(hdc uintptr, r rectWin, fill uintptr) {
 	brush, _, _ := createBrush.Call(fill)
 	pen := mkPen(fill)
 	oldBrush, _, _ := selectObj.Call(hdc, brush)
 	oldPen, _, _ := selectObj.Call(hdc, pen)
-	roundRect.Call(hdc, uintptr(x), uintptr(y), uintptr(x2), uintptr(y2), 18, 18)
+	roundRect.Call(hdc, uintptr(r.Left), uintptr(r.Top), uintptr(r.Right), uintptr(r.Bottom), uintptr(px(10)), uintptr(px(10)))
 	selectObj.Call(hdc, oldBrush)
 	selectObj.Call(hdc, oldPen)
 	deleteObj.Call(brush)
 	deleteObj.Call(pen)
 }
-func setStaticColors(hdc uintptr) uintptr {
-	setTextColor.Call(hdc, rgb(211, 233, 213))
-	setBkMode.Call(hdc, transparentBk)
-	return backgroundBrush
+func setStaticColors(hdc, control uintptr) uintptr {
+	role := controlRoles[control]
+	color, bg, brush := ink, cream, backgroundBrush
+	switch role {
+	case "rail-title":
+		color, bg, brush = cream, forest, panelBrush
+	case "rail-small", "rail-body":
+		color, bg, brush = rgb(208, 220, 191), forest, panelBrush
+	case "muted":
+		color = muted
+	case "eyebrow":
+		color = muted
+		if control == stepLabel {
+			bg, brush = sage, statusBrush
+		}
+	case "status":
+		bg, brush = sage, statusBrush
+	}
+	setTextColor.Call(hdc, color)
+	brushDLL.NewProc("SetBkColor").Call(hdc, bg)
+	setBkMode.Call(hdc, 1)
+	return brush
 }
 func paintButton(l uintptr) uintptr {
-	di := (*drawItemStruct)(unsafe.Pointer(l))
-	if di == nil {
+	if l == 0 {
 		return 0
 	}
-	focused := di.ItemState&0x10 != 0
-	pressed := di.ItemState&0x1 != 0
-	color := rgb(43, 88, 69)
+	var di drawItemStruct
+	kernel32.NewProc("RtlMoveMemory").Call(uintptr(unsafe.Pointer(&di)), l, unsafe.Sizeof(di))
+	focused, pressed, disabled := di.ItemState&0x10 != 0, di.ItemState&1 != 0, di.ItemState&4 != 0
+	fillRect.Call(di.Hdc, uintptr(unsafe.Pointer(&di.RcItem)), backgroundBrush)
+	color, text := sage, ink
 	if di.CtlID == idInstall {
-		color = rgb(172, 224, 151)
+		color, text = forest, cream
 	}
-	if di.CtlID == idClose {
-		color = rgb(57, 69, 64)
+	if di.CtlID == idOpenLocation || di.CtlID == idCheckUpdates {
+		color, text = cream, muted
 	}
 	if pressed {
-		color = rgb(103, 144, 105)
+		color = rgb(177, 194, 157)
 	}
-	drawRound(di.Hdc, di.RcItem.Left, di.RcItem.Top, di.RcItem.Right, di.RcItem.Bottom, color, 0)
+	if disabled {
+		color, text = rgb(221, 226, 211), muted
+	}
+	drawRoundPixels(di.Hdc, di.RcItem, color)
 	setBkMode.Call(di.Hdc, transparentBk)
-	if di.CtlID == idInstall {
-		setTextColor.Call(di.Hdc, rgb(24, 53, 43))
-	} else {
-		setTextColor.Call(di.Hdc, rgb(235, 245, 224))
+	setTextColor.Call(di.Hdc, text)
+	font := bodyFont
+	if di.CtlID == idOpenLocation || di.CtlID == idCheckUpdates {
+		font = smallFont
 	}
-	prev, _, _ := selectObj.Call(di.Hdc, bodyFont)
+	prev, _, _ := selectObj.Call(di.Hdc, font)
 	var title [160]uint16
-	sendMessage.Call(di.HwndItem, 0x000D, 160, uintptr(unsafe.Pointer(&title[0]))) // WM_GETTEXT
-	drawText.Call(di.Hdc, uintptr(unsafe.Pointer(&title[0])), ^uintptr(0), uintptr(unsafe.Pointer(&di.RcItem)), 0x00000001|0x00000004|0x00000020)
+	sendMessage.Call(di.HwndItem, 0x000D, 160, uintptr(unsafe.Pointer(&title[0])))
+	drawText.Call(di.Hdc, uintptr(unsafe.Pointer(&title[0])), ^uintptr(0), uintptr(unsafe.Pointer(&di.RcItem)), 0x1|0x4|0x20|0x800)
 	selectObj.Call(di.Hdc, prev)
 	if focused {
-		setTextColor.Call(di.Hdc, rgb(240, 250, 230))
+		r := di.RcItem
+		r.Left += px(5)
+		r.Top += px(5)
+		r.Right -= px(5)
+		r.Bottom -= px(5)
+		drawFocus.Call(di.Hdc, uintptr(unsafe.Pointer(&r)))
 	}
 	return 1
+}
+
+// The checked-in ICO is the same canonical mark as the companion and website.
+func loadBrandIcon() uintptr {
+	if len(brandICO) < 6 {
+		return 0
+	}
+	count := int(binary.LittleEndian.Uint16(brandICO[4:6]))
+	if count == 0 || len(brandICO) < 6+16*count {
+		return 0
+	}
+	entry := brandICO[6+16*(count-1) : 6+16*count]
+	size, offset := int(binary.LittleEndian.Uint32(entry[8:12])), int(binary.LittleEndian.Uint32(entry[12:16]))
+	if size <= 0 || offset < 0 || offset > len(brandICO)-size {
+		return 0
+	}
+	icon, _, _ := user32.NewProc("CreateIconFromResourceEx").Call(uintptr(unsafe.Pointer(&brandICO[offset])), uintptr(size), 1, 0x30000, 256, 256, 0)
+	return icon
 }

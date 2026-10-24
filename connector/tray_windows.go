@@ -107,6 +107,7 @@ var (
 	pLock         = k32.NewProc("GlobalLock")
 	pUnlock       = k32.NewProc("GlobalUnlock")
 	pFree         = k32.NewProc("GlobalFree")
+	pMoveMemory   = syscall.NewLazyDLL("ntdll.dll").NewProc("RtlMoveMemory")
 	pOpenClip     = u32.NewProc("OpenClipboard")
 	pEmptyClip    = u32.NewProc("EmptyClipboard")
 	pSetClip      = u32.NewProc("SetClipboardData")
@@ -120,8 +121,24 @@ var trayReady bool
 func wide(s string) *uint16                   { v, _ := syscall.UTF16PtrFromString(s); return v }
 func wint(s string) uintptr                   { return uintptr(unsafe.Pointer(wide(s))) }
 func popup(hwnd uintptr, caption, msg string) { pMessageBox.Call(hwnd, wint(msg), wint(caption), 0x40) }
+func copyToNative(dst uintptr, src []byte) {
+	if len(src) == 0 {
+		return
+	}
+	pMoveMemory.Call(dst, uintptr(unsafe.Pointer(&src[0])), uintptr(len(src)))
+	runtime.KeepAlive(src)
+}
+
+func copyFromNative(dst []byte, src uintptr) {
+	if len(dst) == 0 {
+		return
+	}
+	pMoveMemory.Call(uintptr(unsafe.Pointer(&dst[0])), src, uintptr(len(dst)))
+	runtime.KeepAlive(dst)
+}
+
 func openSite() {
-	pShellExecute.Call(0, wint("open"), wint("https://sloth.marceli.dev/#connector"), 0, 0, 1)
+	pShellExecute.Call(0, wint("open"), wint("https://sloth.marceli.dev/dashboard#connector"), 0, 0, 1)
 }
 func copyToClipboard(hwnd uintptr, s string) bool {
 	data := syscall.StringToUTF16(s)
@@ -134,7 +151,8 @@ func copyToClipboard(hwnd uintptr, s string) bool {
 		pFree.Call(mem)
 		return false
 	}
-	copy(unsafe.Slice((*uint16)(unsafe.Pointer(loc)), len(data)), data)
+	bytes := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), len(data)*2)
+	copyToNative(loc, bytes)
 	pUnlock.Call(mem)
 	ok, _, _ := pOpenClip.Call(hwnd)
 	if ok == 0 {

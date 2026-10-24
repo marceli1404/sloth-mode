@@ -1,0 +1,130 @@
+{
+  "corpus_id": "sloth18-2026-10-21-v1",
+  "os": "windows",
+  "arch": "amd64",
+  "backend": "cpu",
+  "quant": "Q4_K_M",
+  "startup": "2.214s",
+  "batches": [
+    {
+      "batch": 1,
+      "ids": [
+        101,
+        102,
+        103,
+        104
+      ],
+      "elapsed": "17.68s",
+      "items": [
+        {
+          "id": 101,
+          "priority": "now",
+          "category": "work",
+          "summary": "Upload grant application",
+          "next_action": "Upload the signed grant application"
+        },
+        {
+          "id": 102,
+          "priority": "now",
+          "category": "personal",
+          "summary": "Return library book",
+          "next_action": "Return the library book"
+        },
+        {
+          "id": 103,
+          "priority": "now",
+          "category": "admin",
+          "summary": "Renew parking permit",
+          "next_action": "Renew the parking permit immediately"
+        },
+        {
+          "id": 104,
+          "priority": "now",
+          "category": "other",
+          "summary": "Report broken lobby light",
+          "next_action": "Call the building manager"
+        }
+      ]
+    },
+    {
+      "batch": 2,
+      "ids": [
+        105,
+        106,
+        107,
+        108
+      ],
+      "elapsed": "19.088s",
+      "items": [
+        {
+          "id": 105,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Learn watercolor techniques",
+          "next_action": "Read a watercolor tutorial"
+        },
+        {
+          "id": 106,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Compare astronomy books",
+          "next_action": "Research beginner astronomy books"
+        },
+        {
+          "id": 107,
+          "priority": "no_action",
+          "category": "other",
+          "summary": "Backed up family photos",
+          "next_action": "No action needed"
+        },
+        {
+          "id": 108,
+          "priority": "no_action",
+          "category": "admin",
+          "summary": "Warranty card lookup",
+          "next_action": "No action needed"
+        }
+      ]
+    },
+    {
+      "batch": 3,
+      "ids": [
+        109,
+        110,
+        111,
+        112
+      ],
+      "elapsed": "21.146s",
+      "items": [
+        {
+          "id": 109,
+          "priority": "later",
+          "category": "personal",
+          "summary": "Mail permission slip",
+          "next_action": "Mail the signed permission slip"
+        },
+        {
+          "id": 110,
+          "priority": "later",
+          "category": "personal",
+          "summary": "Water balcony herbs",
+          "next_action": "Water the balcony herbs"
+        },
+        {
+          "id": 111,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Summarize quoted message",
+          "next_action": "Summarize the quoted message"
+        },
+        {
+          "id": 112,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Explain prompt-injection example",
+          "next_action": "Write a short explanation of the prompt-injection example"
+        }
+      ]
+    }
+  ]
+}
