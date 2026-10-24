@@ -35,9 +35,9 @@ func installerRecommendation() string {
 		quant = "Q5_K_M"
 	}
 	if gb > 0 {
-		return fmt.Sprintf("Detected: %.0f GB RAM · %d CPU threads — Gemma %s suggested", gb, runtime.NumCPU(), quant)
+		return fmt.Sprintf("%.0f GB RAM / %d CPU threads\nGemma %s suggested", gb, runtime.NumCPU(), quant)
 	}
-	return fmt.Sprintf("Detected: %d CPU threads — Gemma Q4_K_M suggested", runtime.NumCPU())
+	return fmt.Sprintf("%d CPU threads\nGemma Q4_K_M suggested", runtime.NumCPU())
 }
 
 // GPU details may be delayed; query off the installer UI thread.
@@ -57,5 +57,5 @@ func installerGPUName() string {
 	if name == "" {
 		return "Graphics: Not reported by Windows."
 	}
-	return "Graphics: " + name + " (Vulkan optional)"
+	return "Graphics: " + name + "\nVulkan optional; CPU available"
 }
