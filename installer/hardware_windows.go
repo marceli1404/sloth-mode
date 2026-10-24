@@ -35,7 +35,7 @@ func installerRecommendation() string {
 		quant = "Q5_K_M"
 	}
 	if gb > 0 {
-		return fmt.Sprintf("%.0f GB RAM / %d CPU threads\nGemma %s suggested", gb, runtime.NumCPU(), quant)
+		return fmt.Sprintf("%.0f GB RAM\n%d CPU threads\nGemma %s suggested", gb, runtime.NumCPU(), quant)
 	}
 	return fmt.Sprintf("%d CPU threads\nGemma Q4_K_M suggested", runtime.NumCPU())
 }
