@@ -1,0 +1,9 @@
+{
+  "source": "Uncut Playwright screen recording of actual browser/Go/llama.cpp workflow",
+  "recorded_webm_sha256": "f77acd72d0f563ab5984ef8d399183c7ba7222def2f7ccaa7afc9799c91caa69",
+  "mp4_sha256": "3f4a4128f571381fe9ef64b1ab3e50f401773b9f5468f8118899cb588d91cac9",
+  "mp4_bytes": 1669986,
+  "encoding": "H.264 CRF20; full duration; no cuts, speed changes, generated frames or audio",
+  "model_sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+  "runtime_launcher_sha256": "72109706e683889b95ec6f66006dee7e527a32c5e41859e0af3d4ea1fc6e3c31"
+}
