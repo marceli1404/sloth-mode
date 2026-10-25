@@ -49,3 +49,45 @@ acceptance evidence, not general model accuracy, quantified human time savings,
 a clean installation, a reboot test or machine-wide network-off verification.
 The prior 12-note corpus and recording remain historical evidence for their
 specific earlier source revisions.
+
+## Final installed-candidate acceptance — 25 October
+
+The owner explicitly resumed Computer Use. The final local installer built
+from clean implementation `511bc0fe58479896adcac475951b5a6c3a8e3087` was
+installed through its actual **Install & open** control. Setup SHA-256:
+`cea33949a836936da4b177519a732aa49bbcb89bb97901f7d52c1eeb981291d0`.
+Installed connector SHA-256:
+`fca86aeb392ff9a1e275af706553a5603221e81a6f4eb302c9752b3a04aaaef1`,
+matching the packaged payload. The health endpoint reported `0.15.0-beta` and
+`ok: true`. This verifies this local build; the separately compiled CI archive
+has its own checksum and was not installed by this run.
+
+Passed on the existing Windows profile:
+
+- Existing notes-file SHA-256 and launch-at-sign-in registry value unchanged.
+- Actual installed pairing window opened with all controls visible.
+- Live Chrome reconnected using its existing trusted-browser signing key.
+- Normal **Exit connector** stopped the loopback listener; relaunching the
+  installed executable restored health, pairing and model readiness.
+- Exact installed executable, with isolated fictional-note storage, ran Q6_K
+  CPU inference through the live website. The fictional garden-club fee became
+  priority `now`, category `admin`, with its original note preserved. The model
+  omitted timing; the UI correctly warned about that omission and linked it to
+  source note #1. The displayed completion text correctly used singular
+  “1 task”. This is a functional check, not a representative accuracy score.
+- Closing the normal pairing window hid it to the tray while the companion
+  remained healthy. The normal workspace was left connected; the test model
+  process was stopped. Personal notes were not used for inference.
+
+The synthetic result is saved alongside the earlier evidence as
+`docs/evidence/2026-10-24/final-installed-cpu-task.json`.
+
+The web export control was clicked, but delivery of its Markdown download was
+not independently verified. Browser policy blocked opening `chrome://downloads/`
+because only HTTP(S) URLs were allowed. No alternate route bypassed that block.
+The previous version's verified export recording remains historical evidence;
+it is not substituted for this missing final-build download observation.
+
+Clean-profile installation, a complete setup/download recording, machine-wide
+network-off testing, signing/security review and broader hardware coverage
+remain separate open checks. No Windows network/security settings were changed.
