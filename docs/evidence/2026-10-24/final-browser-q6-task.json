@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "next_id": 2,
+  "tasks": [
+    {
+      "id": 1,
+      "text": "Submit the fictional garden club poster by tomorrow at 4pm.",
+      "created": "2026-10-24T22:15:25+01:00",
+      "priority": "now",
+      "category": "work",
+      "summary": "Submit garden club poster by tomorrow at 4pm",
+      "next_action": "Submit the garden club poster",
+      "completed": false
+    }
+  ]
+}

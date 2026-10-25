@@ -237,6 +237,19 @@ func (s *Store) Apply(items []TriageItem, inputs []Task) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Inference runs outside this lock. Validate the complete input snapshot
+	// before writing anything: editing a note clears its priority and must not
+	// make a stale suggestion eligible for the new text.
+	current := make(map[int64]Task, len(s.state.Tasks))
+	for _, note := range s.state.Tasks {
+		current[note.ID] = note
+	}
+	for _, input := range inputs {
+		note, exists := current[input.ID]
+		if !exists || note.Text != input.Text || note.Completed || note.Priority != "" {
+			return fmt.Errorf("note #%d changed while Gemma was planning; no suggestions saved. Review your notes and try again", input.ID)
+		}
+	}
 	next := s.state
 	next.Tasks = append([]Task(nil), s.state.Tasks...)
 	for _, r := range items {
@@ -270,6 +283,9 @@ func (s *Store) Export(dir string) (string, error) {
 				fmt.Fprintf(&b, "- %s\n  - Original #%d: %s\n", escapeMarkdown(label), t.ID, escapeMarkdown(t.Text))
 				if t.NextAction != "" {
 					fmt.Fprintf(&b, "  - Next action: %s\n", escapeMarkdown(t.NextAction))
+				}
+				if needsTimingReview(TriageItem{ID: t.ID, Priority: t.Priority, Summary: t.Summary, NextAction: t.NextAction}, t.Text) {
+					b.WriteString("  - Review timing: compare the suggestion with the original note above.\n")
 				}
 			}
 		}
@@ -319,6 +335,10 @@ func validateItems(got []TriageItem, inputs []Task) error {
 		}
 		if len(strings.TrimSpace(x.Summary)) == 0 || len([]rune(x.Summary)) > 200 || len(strings.TrimSpace(x.NextAction)) == 0 || len([]rune(x.NextAction)) > 220 {
 			return errors.New("AI returned invalid summary or action")
+		}
+		action := strings.Trim(strings.ToLower(strings.TrimSpace(x.NextAction)), ".! ")
+		if x.Priority != "no_action" && (action == "no action needed" || action == "no action" || action == "none" || action == "n/a" || action == "nothing to do") {
+			return errors.New("AI returned an unfinished task without a next action (nothing saved)")
 		}
 	}
 	return nil

@@ -30,8 +30,18 @@ jobs:
       - name: Connector and installer build
         shell: pwsh
         run: ./scripts/build-windows.ps1
+      - name: Windows static analysis
+        shell: pwsh
+        run: |
+          Push-Location connector
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { throw 'Connector vet failed' }
+          Pop-Location
+          Push-Location installer
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { throw 'Installer vet failed' }
+          Pop-Location
       - name: Preview installer checksum
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         run: |
           $exe = 'build/SlothMode-Setup.exe'
@@ -39,7 +49,6 @@ jobs:
           $sha = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLowerInvariant()
           "$sha *SlothMode-Setup.exe" | Set-Content -Encoding ascii 'build/SlothMode-Setup.exe.sha256'
       - name: Upload unsigned Windows preview installer
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: SlothMode-Windows-Preview

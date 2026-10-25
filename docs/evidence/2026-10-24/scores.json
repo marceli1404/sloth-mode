@@ -1,0 +1,171 @@
+{
+  "baseline": {
+    "priority_matches": 9,
+    "cases": 12,
+    "timing_phrases_total": 9,
+    "timing_phrases_missing": 9,
+    "rows": [
+      {
+        "id": 201,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "4 PM",
+          "today"
+        ]
+      },
+      {
+        "id": 202,
+        "priority_match": false,
+        "missing_timing_phrases": [
+          "tomorrow"
+        ]
+      },
+      {
+        "id": 203,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "tomorrow"
+        ]
+      },
+      {
+        "id": 204,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 205,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 206,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "Next month"
+        ]
+      },
+      {
+        "id": 207,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 208,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 209,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "Next week"
+        ]
+      },
+      {
+        "id": 210,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "today"
+        ]
+      },
+      {
+        "id": 211,
+        "priority_match": false,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 212,
+        "priority_match": false,
+        "missing_timing_phrases": [
+          "today",
+          "next week"
+        ]
+      }
+    ],
+    "timing_phrases_retained": 0
+  },
+  "candidate": {
+    "priority_matches": 12,
+    "cases": 12,
+    "timing_phrases_total": 9,
+    "timing_phrases_missing": 8,
+    "rows": [
+      {
+        "id": 201,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "4 PM",
+          "today"
+        ]
+      },
+      {
+        "id": 202,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "tomorrow"
+        ]
+      },
+      {
+        "id": 203,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "tomorrow"
+        ]
+      },
+      {
+        "id": 204,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 205,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 206,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "Next month"
+        ]
+      },
+      {
+        "id": 207,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 208,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 209,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "Next week"
+        ]
+      },
+      {
+        "id": 210,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "today"
+        ]
+      },
+      {
+        "id": 211,
+        "priority_match": true,
+        "missing_timing_phrases": []
+      },
+      {
+        "id": 212,
+        "priority_match": true,
+        "missing_timing_phrases": [
+          "today"
+        ]
+      }
+    ],
+    "timing_phrases_retained": 1
+  }
+}

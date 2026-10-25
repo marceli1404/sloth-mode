@@ -1,0 +1,130 @@
+{
+  "corpus_id": "sloth-20261024-fresh-v1",
+  "os": "windows",
+  "arch": "amd64",
+  "backend": "cpu",
+  "quant": "Q4_K_M",
+  "startup": "2.767s",
+  "batches": [
+    {
+      "batch": 1,
+      "ids": [
+        201,
+        202,
+        203,
+        204
+      ],
+      "elapsed": "20.374s",
+      "items": [
+        {
+          "id": 201,
+          "priority": "now",
+          "category": "work",
+          "summary": "Email the lab report",
+          "next_action": "Email the lab report"
+        },
+        {
+          "id": 202,
+          "priority": "now",
+          "category": "admin",
+          "summary": "Pay the council tax",
+          "next_action": "Pay the council tax"
+        },
+        {
+          "id": 203,
+          "priority": "now",
+          "category": "personal",
+          "summary": "Return the travel guide",
+          "next_action": "Return the travel guide to the library"
+        },
+        {
+          "id": 204,
+          "priority": "now",
+          "category": "other",
+          "summary": "Book a repair for the broken boiler",
+          "next_action": "Book a repair for the broken boiler"
+        }
+      ]
+    },
+    {
+      "batch": 2,
+      "ids": [
+        205,
+        206,
+        207,
+        208
+      ],
+      "elapsed": "20.182s",
+      "items": [
+        {
+          "id": 205,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Learn watercolor exercise",
+          "next_action": "Read a beginner watercolor exercise tutorial."
+        },
+        {
+          "id": 206,
+          "priority": "later",
+          "category": "personal",
+          "summary": "Compare bicycle locks",
+          "next_action": "Research bicycle locks."
+        },
+        {
+          "id": 207,
+          "priority": "no_action",
+          "category": "other",
+          "summary": "Club form submitted",
+          "next_action": "No action needed"
+        },
+        {
+          "id": 208,
+          "priority": "no_action",
+          "category": "other",
+          "summary": "Community hall entrance",
+          "next_action": "No action needed"
+        }
+      ]
+    },
+    {
+      "batch": 3,
+      "ids": [
+        209,
+        210,
+        211,
+        212
+      ],
+      "elapsed": "20.49s",
+      "items": [
+        {
+          "id": 209,
+          "priority": "later",
+          "category": "admin",
+          "summary": "Landlord request",
+          "next_action": "Ask the landlord for a copy of the rent receipt."
+        },
+        {
+          "id": 210,
+          "priority": "now",
+          "category": "other",
+          "summary": "Broken stair light",
+          "next_action": "Call the building caretaker."
+        },
+        {
+          "id": 211,
+          "priority": "later",
+          "category": "learning",
+          "summary": "Quoted attack explanation",
+          "next_action": "Read a worksheet explaining the quoted attack."
+        },
+        {
+          "id": 212,
+          "priority": "later",
+          "category": "other",
+          "summary": "Paint purchase",
+          "next_action": "Consider the purchase next week."
+        }
+      ]
+    }
+  ]
+}

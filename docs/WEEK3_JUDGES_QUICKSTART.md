@@ -15,11 +15,22 @@
 | Browser model tab, [Gemma 4 E2B](../web/browser-ai.mjs) | Experimental local WebGPU/LiteRT-LM after ~2GB explicit download | Source exists, but cross-device GPU inference, model integrity, and production compatibility are not yet established |
 | Optional account | Explicitly account-saved tasks via Cloudflare D1 | Not the local notes or native prompts; account authorization is distinct from local pairing |
 
-The short video linked above is a **promotional overview**, not a recorded proof of real inference.
+The promotional overview and actual model demonstration are separate:
+
+- **[Watch the uncut 41-second browser-to-Gemma run](https://raw.githubusercontent.com/marceli1404/sloth-mode/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/real-browser-gemma-uncut.mp4).** Four fictional notes, actual browser pairing and signed requests, real Gemma 3 4B CPU inference, source-linked results, editing, export and reconnection. Click-to-visible-results took 25.063 seconds, including startup and polling, with four CPU threads and zero GPU layers.
+- **[Read the inputs, output, limits and reproduction steps](https://github.com/marceli1404/sloth-mode/blob/f73cfc4a01b6cbb672cac174aaa004dbe6d0b6fe/docs/evidence/2026-10-24/README.md).** This controlled local run used already-installed assets. It does not establish clean installation, model-download reliability, machine-wide offline behavior or time saved.
+- The earlier short video is a **promotional overview**, not proof of model execution.
+
+For the native Windows route, use the identified unsigned candidate linked in
+the [published entry](https://dev.to/marceli/sloth-mode-i-built-a-local-gemma-assistant-so-my-brain-can-be-a-little-lazier-ci4).
+Its Actions download may require a GitHub login. Quiet Lab and the recording
+remain available without installing the companion or creating a Sloth Mode account.
 
 ## Thirty-second read for judges
 
-Sloth Mode addresses the uncomfortable gap between *capturing a thought* and *knowing what to do next*. A typical to-do list asks you to organise your entries; Sloth Mode offers an optional local model that drafts that organisation for you. You can start without an account, keep a local inbox, accept or reject model suggestions, and use the GGUF offline after first-time downloads.
+**Latest Windows check — 25 October:** the final local installer from implementation `511bc0f` passed an existing-profile upgrade, exact installed-payload checksum verification, normal exit/relaunch, live-browser reconnect and Q6 CPU inference with a fictional note. Personal notes and startup settings were preserved. [Acceptance report and synthetic result](FINAL_ACCEPTANCE_2026-10-24.md#final-installed-candidate-acceptance--25-october). This was not a clean-profile install or a network-off test. The separate CI artifact has its own checksum and was not installed in that run.
+
+Sloth Mode addresses the uncomfortable gap between *capturing a thought* and *knowing what to do next*. A typical to-do list asks you to organise your entries; Sloth Mode offers an optional local model that drafts that organisation for you. You can start without an account, keep a local inbox, review suggestions beside the original notes, and edit or ignore them. Native inference is designed to run locally after setup; independent offline acceptance for the new installer remains pending.
 
 **Why open weights matter here:** with Gemma 3 and `llama.cpp`, the source notes don't need to be sent to a hosted model endpoint for task planning. The runtime and quantization can be inspected or changed, and per-prompt vendor inference billing isn't mandatory. Initial model downloads still need connectivity, memory/disk requirements still apply, and the account and web delivery paths still use online services.
 
@@ -93,8 +104,8 @@ The technical distinction is the combination of:
 
 ## Limits we want judges and testers to know
 
-- Windows is an **unsigned early-access preview**: [artifact and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/39694111337); don't disable security protection to use it.
-- Only one Windows owner's real model setup, restart, offline and data-preservation experience has been reported so far; we do **not** claim independent multicenter testing.
+- Windows is an **unsigned early-access preview**: [candidate artifact and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40133971950); don't disable security protection to use it.
+- Final local-build upgrade, restart, pairing, data preservation and CPU inference were checked on one existing Windows profile. Offline success was owner-reported on older previews; independent final-candidate offline and clean-profile checks remain open.
 - [Security review #7](https://github.com/marceli1404/sloth-mode/issues/7) remains open (historical path-handling/Zip Slip alerts are not independently dispositioned); passing CodeQL execution is not a security clearance.
 - [Hardware/account validation #8](https://github.com/marceli1404/sloth-mode/issues/8) and [browser Gemma GPU validation #18](https://github.com/marceli1404/sloth-mode/issues/18) remain open.
 - No signed stable updater release; source and website may not mirror every account-production binding. The official status is **public beta**.

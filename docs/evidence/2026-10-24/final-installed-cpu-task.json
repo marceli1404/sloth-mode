@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "next_id": 2,
+  "tasks": [
+    {
+      "id": 1,
+      "text": "Pay the fictional garden club fee tomorrow at 4pm.",
+      "created": "2026-10-25T10:59:25Z",
+      "priority": "now",
+      "category": "admin",
+      "summary": "Pay garden club fee",
+      "next_action": "Pay the fictional garden club fee",
+      "completed": false
+    }
+  ]
+}
