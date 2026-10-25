@@ -48,11 +48,11 @@ The earlier promotional overview remains available:
 
 ### Trying the native path
 
-1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40114869780)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
+1. Get the **[refined Windows preview and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40133971950)** under **Artifacts → SlothMode-Windows-Preview**. GitHub may require a login. This is an unsigned candidate from PR #34; you can also build from that source.
 2. Install the companion for your Windows account. Open **Setup & Pairing**, then pair the browser you trust.
 3. Separately approve the Gemma model and runtime download. Use fictional notes for your first plan and review the suggestions.
 
-The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/133f1d1d0c4fe97a1a54b405a89a0d795fcd9bf8/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
+The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/e1428d0524143dc4a68956de36c8121107b354b3/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
 
 On 24 October I also refined the installer. Its old preview clipped text and made it too hard to see what would happen next. The [new candidate in PR #34](https://github.com/marceli1404/sloth-mode/pull/34) separates installation, browser pairing and the optional model download, with readable status and a layout that fits the monitor. The linked candidate passes Linux, Windows and cloud CI plus CodeQL checks. A full clean-profile installation and pairing run for this candidate is still pending.
 
@@ -113,6 +113,8 @@ A person can edit a note while a local model is still thinking. Applying the old
 A local model is not useful if getting it running feels like another project. The installer refinement uses explicit font roles, consistent backgrounds and DPI-aware fitting. Installation and update work run off the UI thread, failed replacement can restore the previous app, and starting a process alone does not count as success: the installer checks the companion's local health response.
 
 The new candidate passes **12 installer tests**, connector tests, Windows builds and static analysis. Text fitting and window bounds are checked at multiple scales; the native layout, Tab focus and Escape were also inspected. Those checks do not substitute for installing the candidate on a clean profile. The [verification report](https://github.com/marceli1404/sloth-mode/blob/f7eccd89470a16b604fe50e2c0c9010cc0f470fa/docs/INSTALLER_REFINEMENT_2026-10-24.md) distinguishes them.
+
+Final preparation also caught a Q6 output-format failure: Gemma combined priority and category as `now/work`. I replaced the shorthand examples, constrained decoding to the expected schema, and retested the failing fictional note through the live site. The [acceptance notes](https://github.com/marceli1404/sloth-mode/blob/511bc0fe58479896adcac475951b5a6c3a8e3087/docs/FINAL_ACCEPTANCE_2026-10-24.md) include a three-note CPU run and distinguish an existing-profile upgrade from clean-install and offline testing.
 
 ## Why Does Open Innovation Matter?
 
