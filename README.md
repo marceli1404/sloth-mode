@@ -4,7 +4,7 @@
 
 **Release status: public web beta, unsigned Windows preview, experimental Linux build. Not yet a signed stable release.** See the [public beta guide](docs/PUBLIC_BETA_LAUNCH.md) for test evidence, download instructions, security limitations and release gates.
 
-[**Try the public beta**](https://sloth.marceli.dev/dashboard) · [**Windows unsigned preview**](https://github.com/marceli1404/sloth-mode/actions/runs/39694111337) · [**Send beta feedback**](https://github.com/marceli1404/sloth-mode/issues/30) · [Beta limitations](docs/PUBLIC_BETA_LAUNCH.md)
+[**Try the public beta**](https://sloth.marceli.dev/dashboard) · [**Windows unsigned preview**](https://github.com/marceli1404/sloth-mode/actions/runs/40133971950) · [**Send beta feedback**](https://github.com/marceli1404/sloth-mode/issues/30) · [Beta limitations](docs/PUBLIC_BETA_LAUNCH.md)
 
 **Week 3 judges / testers:** [60-second project overview, build-window evidence and repeatable offline Gemma proof](docs/WEEK3_JUDGES_QUICKSTART.md). The interactive guest demo is intentionally not presented as real model inference; the opt-in test uses three fictional notes and reports actual local timings.
 

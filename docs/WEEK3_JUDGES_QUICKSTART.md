@@ -93,7 +93,7 @@ The technical distinction is the combination of:
 
 ## Limits we want judges and testers to know
 
-- Windows is an **unsigned early-access preview**: [artifact and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/39694111337); don't disable security protection to use it.
+- Windows is an **unsigned early-access preview**: [artifact and SHA-256](https://github.com/marceli1404/sloth-mode/actions/runs/40133971950); don't disable security protection to use it.
 - Only one Windows owner's real model setup, restart, offline and data-preservation experience has been reported so far; we do **not** claim independent multicenter testing.
 - [Security review #7](https://github.com/marceli1404/sloth-mode/issues/7) remains open (historical path-handling/Zip Slip alerts are not independently dispositioned); passing CodeQL execution is not a security clearance.
 - [Hardware/account validation #8](https://github.com/marceli1404/sloth-mode/issues/8) and [browser Gemma GPU validation #18](https://github.com/marceli1404/sloth-mode/issues/18) remain open.
