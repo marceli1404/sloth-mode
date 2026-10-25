@@ -30,3 +30,20 @@ local model setup control and its explanation remain gated until a companion is
 paired; their wording and adjacency were reviewed in source without pairing a
 device. This review does not establish that the Cloudflare production Worker
 has been updated.
+
+## Production verification — 25 October
+
+The reviewed PAGE-only bundle was subsequently deployed to the existing
+`sloth-mode-demo` Worker: version `165b21b0-dbd2-4de9-b521-6bba51f2b0fb`,
+deployment `bcb174d2-7636-4f87-95b4-29c7975aead3`, 100% traffic.
+Source `ffa8ec81225bf953d9f08e4eeb1e514aed0e2022` passed the 18 targeted
+Node tests. The recovered production bundle matched its saved SHA-256 before
+mutation; the new bundle SHA-256 is
+`c601d832dd85c8f495a2d146bee8f59a989967817f85af920b83bda29a3c133a`.
+Every non-PAGE byte and the existing D1 binding were preserved.
+
+Live homepage and dashboard both returned HTTP 200. The current candidate URL,
+concise setup label and several-GB guidance were present; the old candidate
+link was absent. Final live desktop inspection was not performed after the
+user stopped Computer Use. No runtime, account, security or stable-updater
+settings were changed by this copy deployment.
