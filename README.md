@@ -4,9 +4,9 @@
 
 **Release status: public web beta, unsigned Windows preview, experimental Linux build. Not yet a signed stable release.** See the [public beta guide](docs/PUBLIC_BETA_LAUNCH.md) for test evidence, download instructions, security limitations and release gates.
 
-[**Try the public beta**](https://sloth.marceli.dev/dashboard) · [**Windows unsigned preview**](https://github.com/marceli1404/sloth-mode/actions/runs/39694111337) · [**Send beta feedback**](https://github.com/marceli1404/sloth-mode/issues/30) · [Beta limitations](docs/PUBLIC_BETA_LAUNCH.md)
+[**Try the public beta**](https://sloth.marceli.dev/dashboard) · [**Windows unsigned preview**](https://github.com/marceli1404/sloth-mode/actions/runs/40133971950) · [**Send beta feedback**](https://github.com/marceli1404/sloth-mode/issues/30) · [Beta limitations](docs/PUBLIC_BETA_LAUNCH.md)
 
-**Week 3 judges / testers:** [60-second project overview, build-window evidence and repeatable offline Gemma proof](docs/WEEK3_JUDGES_QUICKSTART.md). The interactive guest demo is intentionally not presented as real model inference; the opt-in test uses three fictional notes and reports actual local timings.
+**Week 3 judges / testers:** [Project overview, uncut real-Gemma recording and verified Windows acceptance](docs/WEEK3_JUDGES_QUICKSTART.md). Quiet Lab is an illustrative sample. The recording shows real CPU inference; [final installed-build acceptance](docs/FINAL_ACCEPTANCE_2026-10-24.md#final-installed-candidate-acceptance--25-october) separately verifies upgrade, pairing, restart and fictional-note inference. Clean-profile and independent offline checks remain open.
 
 The web beta is open without an account. The downloadable Windows build is **unsigned and experimental**, requires a GitHub artifact download (GitHub login may be required), and has unresolved native security review gates. Don't disable security protections to run it. If you test it, please report bugs with fictional sample tasks and no credentials.
 

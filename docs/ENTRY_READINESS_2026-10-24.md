@@ -1,4 +1,4 @@
-# Competition entry readiness — 24 October 2026
+# Competition entry readiness — updated 25 October 2026
 
 The entry is published, reviewable without an account, and supported by an
 uncut real-model demonstration and public source evidence. These are reasons
@@ -40,8 +40,9 @@ element. The deadline is 25 October 2026 at 11:59 PM PDT, equivalent to
 
 ## What is still unproven
 
-- Clean-profile installation, upgrade preservation and a full setup recording
-  for the final candidate. Native layout fixtures do not prove installation.
+- Clean-profile installation and a full setup/download recording for the final
+  candidate. Existing-profile upgrade preservation is now verified separately
+  in the [final installed-build report](FINAL_ACCEPTANCE_2026-10-24.md#final-installed-candidate-acceptance--25-october).
 - An independent network-off run for that candidate. Older owner reports are
   useful history, not new-candidate acceptance evidence.
 - Windows Authenticode signing and an independently reviewed stable release.
@@ -76,12 +77,20 @@ separate test data and existing task-local assets. No downloads or personal
 notes were used. The machine remained online; this does not close the offline
 acceptance gate.
 
-## Next acceptance action
+## Latest installed-build evidence and next acceptance action
 
-The user's current companion is running on the production loopback port.
-Replacing it or exercising the installer against this profile would affect
-the running application and potentially its startup/shortcut settings. The
-remaining independent acceptance check therefore needs either a disposable
-Windows environment or explicit permission to update this installed companion.
-Do not stop it, change networking or publish a stable updater merely to turn
-an incomplete checklist into a passing result.
+On 25 October the final local installer from clean implementation `511bc0f`
+was installed through its native control. The installed payload checksum,
+health, normal exit/relaunch, live-browser reconnect, close-to-tray and real
+Q6 CPU inference with one fictional note passed. Personal notes and startup
+settings were unchanged. The model omitted timing; the live UI flagged it and
+linked the original note. This is functional evidence, not a quality benchmark.
+
+The [acceptance report](FINAL_ACCEPTANCE_2026-10-24.md#final-installed-candidate-acceptance--25-october)
+records the exact hashes and limits. The CI artifact is a separate compilation
+and was not installed in that run. Current browser-export download delivery is
+still unverified. The normal companion was restored after the isolated test.
+
+The next independent acceptance gate needs a disposable clean Windows profile
+and a controlled offline repeat. Existing-profile success does not close those
+gates, establish signing/security clearance or justify a stable release.
