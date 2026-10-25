@@ -52,7 +52,7 @@ The earlier promotional overview remains available:
 2. Install the companion for your Windows account. Open **Setup & Pairing**, then pair the browser you trust.
 3. Separately approve the Gemma model and runtime download. Use fictional notes for your first plan and review the suggestions.
 
-The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/e1428d0524143dc4a68956de36c8121107b354b3/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
+The native model download is several GB, depending on the quantization. An account and Ollama are not required. The [judges' quickstart](https://github.com/marceli1404/sloth-mode/blob/48ac371f572405051fe1267f4067940902d3f524/docs/WEEK3_JUDGES_QUICKSTART.md) includes an opt-in real-model test for a machine with those files installed.
 
 On 24 October I also refined the installer. Its old preview clipped text and made it too hard to see what would happen next. The [new candidate in PR #34](https://github.com/marceli1404/sloth-mode/pull/34) separates installation, browser pairing and the optional model download, with readable status and a layout that fits the monitor. The linked candidate passes Linux, Windows and cloud CI plus CodeQL checks. A full clean-profile installation and pairing run for this candidate is still pending.
 
@@ -62,7 +62,7 @@ On 24 October I also refined the installer. Its old preview clipped text and mad
 
 ## Code
 
-**[github.com/marceli1404/sloth-mode](https://github.com/marceli1404/sloth-mode)**
+**[Source for the tested Windows candidate](https://github.com/marceli1404/sloth-mode/tree/511bc0fe58479896adcac475951b5a6c3a8e3087)** · [Repository main](https://github.com/marceli1404/sloth-mode)
 
 The Go companion is in `connector/`, the Windows installer in `installer/`, the browser workspace in `web/`, and the reference account service in `cloud/`. Application code is MIT-licensed; Gemma weights and the runtime retain their own terms.
 
@@ -114,7 +114,9 @@ A local model is not useful if getting it running feels like another project. Th
 
 The new candidate passes **12 installer tests**, connector tests, Windows builds and static analysis. Text fitting and window bounds are checked at multiple scales; the native layout, Tab focus and Escape were also inspected. Those checks do not substitute for installing the candidate on a clean profile. The [verification report](https://github.com/marceli1404/sloth-mode/blob/f7eccd89470a16b604fe50e2c0c9010cc0f470fa/docs/INSTALLER_REFINEMENT_2026-10-24.md) distinguishes them.
 
-Final preparation also caught a Q6 output-format failure: Gemma combined priority and category as `now/work`. I replaced the shorthand examples, constrained decoding to the expected schema, and retested the failing fictional note through the live site. The [acceptance notes](https://github.com/marceli1404/sloth-mode/blob/511bc0fe58479896adcac475951b5a6c3a8e3087/docs/FINAL_ACCEPTANCE_2026-10-24.md) include a three-note CPU run and distinguish an existing-profile upgrade from clean-install and offline testing.
+Final preparation also caught a Q6 output-format failure: Gemma combined priority and category as `now/work`. I replaced the shorthand examples, constrained decoding to the expected schema, and retested the failing fictional note through the live site. The [acceptance notes](https://github.com/marceli1404/sloth-mode/blob/f49c05c7a1813e1eab2633c9afa3b5111df60354/docs/FINAL_ACCEPTANCE_2026-10-24.md) include a three-note CPU run and distinguish an existing-profile upgrade from clean-install and offline testing.
+
+On 25 October, the final local Windows build passed an existing-profile upgrade, normal exit and relaunch, live-browser reconnect and real Q6 CPU inference with a fictional note. The installed executable matched its packaged checksum; personal notes and the launch-at-sign-in setting were unchanged. The model still omitted timing from that note, and the live UI flagged the omission beside its source. The [final installed-build report and synthetic output](https://github.com/marceli1404/sloth-mode/blob/f49c05c7a1813e1eab2633c9afa3b5111df60354/docs/FINAL_ACCEPTANCE_2026-10-24.md#final-installed-candidate-acceptance--25-october) record what passed. This was not a clean-profile or network-off test, and the separately compiled CI download was not installed in that run.
 
 ## Why Does Open Innovation Matter?
 
@@ -122,7 +124,7 @@ For a private task inbox, where the model runs matters. Open-weight Gemma and `l
 
 It also lets me inspect the prompt, change quantization and runtime settings, and repeat the same fictional cases. The deadline failure above is visible in the published output. Someone else can study it or change the handling rather than trusting a screenshot of the best result.
 
-After downloading the model and runtime, native inference can run without an internet connection. Earlier Windows previews have an [owner-reported successful offline/restart/persistence check](https://github.com/marceli1404/sloth-mode/issues/8#issuecomment-6328830871). That is one person's report on older builds; the new installer still needs its own complete acceptance run. The hosted website and account services continue to need connectivity.
+After downloading the model and runtime, native inference can run without an internet connection. Earlier Windows previews have an [owner-reported successful offline/restart/persistence check](https://github.com/marceli1404/sloth-mode/issues/8#issuecomment-6328830871). That is one person's report on older builds; the final local build has passed the upgrade and CPU checks above, while independent clean-profile and offline acceptance remain open. The hosted website and account services continue to need connectivity.
 
 ## The Lazy Payoff
 
