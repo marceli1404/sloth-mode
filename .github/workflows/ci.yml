@@ -40,7 +40,7 @@ jobs:
           "$sha *SlothMode-Setup.exe" | Set-Content -Encoding ascii 'build/SlothMode-Setup.exe.sha256'
       - name: Upload unsigned Windows preview installer
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SlothMode-Windows-Preview
           path: |
